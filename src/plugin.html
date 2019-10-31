@@ -54,7 +54,7 @@ this.onopen = () => {
 			}
 		}
 		
-		broadcast.on('redrawFinished', () => {
+		function redraw() {
 			if (store.get('overlay') != 'wind') {
 				return;
 			}
@@ -73,7 +73,11 @@ this.onopen = () => {
 					}
 				}
 			});
-		});
+		}
+		
+		redraw();
+		
+		broadcast.on('redrawFinished', redraw);
 	});
 };
 

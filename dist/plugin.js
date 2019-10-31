@@ -134,7 +134,7 @@ function () {
         _loop(lat);
       }
 
-      broadcast.on('redrawFinished', function () {
+      function redraw() {
         if (store.get('overlay') != 'wind') {
           return;
         }
@@ -160,7 +160,10 @@ function () {
             }
           }
         });
-      });
+      }
+
+      redraw();
+      broadcast.on('redrawFinished', redraw);
     });
   };
 
