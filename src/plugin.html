@@ -1,14 +1,130 @@
 <plugin>
+<script>
+import broadcast from '@windy/broadcast'
+import interpolator from '@windy/interpolator'
+import map from '@windy/map'
+import store from '@windy/store'
+import utils from '@windy/utils'
 
-	<b>This plugin will rock</b>
+const markers = {};
+const winds = {};
 
-	<script>
+this.onopen = () => {
+	fetch('https://www.paragliding-mapa.cz/api/v0.1/launch').then(response => response.json()).then(launch => {
+		const sites = {};
+		launchLoop: for (let site of launch.data) {
+			for (let lat in sites) {
+				for (let lon in sites[lat]) {
+					if (utils.isNear({lat, lon}, {lat: site.latitude, lon: site.longitude})) {
+						sites[lat][lon].push(site);
+						continue launchLoop;
+					}
+				}
+			}
+			sites[site.latitude] = sites[site.latitude] || {};
+			sites[site.latitude][site.longitude] = [site];
+		}
+		
+		function getTooltip(sites) {
+			return () => {
+				let wind;
+				const tooltips = sites.map(site => {
+					wind = wind || (winds[site.latitude] && winds[site.latitude][site.longitude]);
+					return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> (' + site.superelevation + ' m)';
+				});
+				if (wind) {
+					tooltips.push(wind);
+				}
+				return tooltips.join('<br>');
+			};
+		}
+		
+		for (let lat in sites) {
+			for (let lon in sites[lat]) {
+				const titles = sites[lat][lon].map(site => site.name + ' (' + site.superelevation + ' m)');
+				const icon = getIcon(sites[lat][lon], null, 19);
+				const marker = L.marker([lat, lon], {icon, title: titles.join('\n') + '\n', riseOnHover: true}).addTo(map);
+				if (sites[lat][lon].length > 1 || L.Browser.mobile) {
+					marker.bindPopup(getTooltip(sites[lat][lon]));
+				} else {
+					marker.on('click', () => open(sites[lat][lon][0].url));
+				}
+				markers[lat] = markers[lat] || {};
+				markers[lat][lon] = marker;
+			}
+		}
+		
+		broadcast.on('redrawFinished', () => {
+			if (store.get('overlay') != 'wind') {
+				return;
+			}
+			interpolator(interpolate => {
+				for (let lat in markers) {
+					for (let lon in markers[lat]) {
+						if (map.getBounds().contains(L.latLng(lat, lon))) {
+							let data = interpolate({lat, lon});
+							let wind = (data ? utils.wind2obj(data) : null);
+							markers[lat][lon].setIcon(getIcon(sites[lat][lon], wind, map.getZoom() > 9 ? 38 : 19));
+							winds[lat] = winds[lat] || {};
+							winds[lat][lon] = (wind ? wind.dir + '° ' + Math.round(wind.wind) + ' m/s' : '');
+							markers[lat][lon]._icon.title = markers[lat][lon]._icon.title.replace(/\n.*$/, '\n' + winds[lat][lon]);
+							markers[lat][lon].setOpacity(isActive(sites[lat][lon], wind) ? 1 : .4);
+						}
+					}
+				}
+			});
+		});
+	});
+};
 
-	console.log('I am mounted to the page')
+this.onclose = () => {
+	for (let lat in markers) {
+		for (let lon in markers[lat]) {
+			map.removeLayer(markers[lat][lon]);
+		}
+	}
+};
 
-	this.onopen = () => console.log('I am opened')
+function isActive(sites, wind) {
+	if (!wind) {
+		return true;
+	}
+	const dir = wind.dir;
+	for (let site of sites) {
+		let from = site.wind_usable_from;
+		let to = site.wind_usable_to;
+		if (from < to ? dir >= from && dir <= to : dir >= from || dir <= to) {
+			return true;
+		}
+	}
+	return false;
+}
 
-	this.onclose = () => console.log('I am being closed')
+function getIcon(sites, wind, size) {
+	let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38">\n';
+	for (let site of sites) {
+		let color = (!wind ? 'white' : !isActive([site], wind) ? 'red' : Math.round(wind.wind * 10) / 10 >= 4 ? 'yellow' : 'lime');
+		svg += getCircleSlice(site.wind_usable_from - 90, site.wind_usable_to - 90, 38, color) + '\n';
+	}
+	svg += '<circle cx="19" cy="19" r="18" stroke="white" stroke-width="2" fill-opacity="0"/>\n</svg>';
+	return L.icon({
+		iconUrl: 'data:image/svg+xml;utf8,' + encodeURIComponent(svg),
+		iconSize: [size, size],
+		iconAnchor: [(size - 1) / 2, (size - 1) / 2],
+	});
+}
 
-	</script>
+function getCircleSlice(startAngle, endAngle, size, color) {
+	const hSize = size / 2;
+	const x1 = Math.round(hSize + hSize * Math.cos(Math.PI * startAngle / 180));
+	const y1 = Math.round(hSize + hSize * Math.sin(Math.PI * startAngle / 180));
+	const x2 = Math.round(hSize + hSize * Math.cos(Math.PI * endAngle / 180));
+	const y2 = Math.round(hSize + hSize * Math.sin(Math.PI * endAngle / 180));
+	return "<path d='M" + hSize + "," + hSize + " L" + x1 + "," + y1 + " A" + hSize + "," + hSize + " 0 0,1 " + x2 + "," + y2 + " z' fill='" + color + "'/>";
+}
+
+function html(s) {
+	return s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+}
+</script>
 </plugin>
