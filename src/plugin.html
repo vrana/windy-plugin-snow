@@ -64,7 +64,8 @@ this.onopen = () => {
 						if (map.getBounds().contains(L.latLng(lat, lon))) {
 							let data = interpolate({lat, lon});
 							let wind = (data ? utils.wind2obj(data) : null);
-							markers[lat][lon].setIcon(getIcon(sites[lat][lon], wind, map.getZoom() > 9 ? 38 : 19));
+							const zoom = map.getZoom();
+							markers[lat][lon].setIcon(getIcon(sites[lat][lon], wind, zoom > 9 ? 38 : zoom > 6 ? 19 : zoom > 4 ? 9 : 5));
 							winds[lat] = winds[lat] || {};
 							winds[lat][lon] = (wind ? wind.dir + '° ' + Math.round(wind.wind) + ' m/s' : '');
 							markers[lat][lon]._icon.title = markers[lat][lon]._icon.title.replace(/\n.*$/, '\n' + winds[lat][lon]);

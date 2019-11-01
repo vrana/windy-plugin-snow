@@ -148,8 +148,9 @@ function () {
                   lon: lon
                 });
                 var wind = data ? utils.wind2obj(data) : null;
+                var zoom = map.getZoom();
 
-                markers[_lat][lon].setIcon(getIcon(sites[_lat][lon], wind, map.getZoom() > 9 ? 38 : 19));
+                markers[_lat][lon].setIcon(getIcon(sites[_lat][lon], wind, zoom > 9 ? 38 : zoom > 6 ? 19 : zoom > 4 ? 9 : 5));
 
                 winds[_lat] = winds[_lat] || {};
                 winds[_lat][lon] = wind ? wind.dir + '° ' + Math.round(wind.wind) + ' m/s' : '';
