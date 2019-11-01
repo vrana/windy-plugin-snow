@@ -42,7 +42,7 @@ this.onopen = () => {
 		for (let lat in sites) {
 			for (let lon in sites[lat]) {
 				const titles = sites[lat][lon].map(site => site.name + ' (' + site.superelevation + ' m)');
-				const icon = getIcon(sites[lat][lon], null, 19);
+				const icon = newIcon(getIconUrl(sites[lat][lon], null), map.getZoom());
 				const marker = L.marker([lat, lon], {icon, title: titles.join('\n') + '\n', riseOnHover: true}).addTo(map);
 				if (sites[lat][lon].length > 1 || L.Browser.mobile) {
 					marker.bindPopup(getTooltip(sites[lat][lon]));
@@ -55,21 +55,23 @@ this.onopen = () => {
 		}
 		
 		function redraw() {
-			if (store.get('overlay') != 'wind') {
-				return;
-			}
 			interpolator(interpolate => {
 				for (let lat in markers) {
 					for (let lon in markers[lat]) {
 						if (map.getBounds().contains(L.latLng(lat, lon))) {
-							let data = interpolate({lat, lon});
-							let wind = (data ? utils.wind2obj(data) : null);
-							const zoom = map.getZoom();
-							markers[lat][lon].setIcon(getIcon(sites[lat][lon], wind, zoom > 9 ? 38 : zoom > 6 ? 19 : zoom > 4 ? 9 : 5));
-							winds[lat] = winds[lat] || {};
-							winds[lat][lon] = (wind ? wind.dir + '° ' + Math.round(wind.wind) + ' m/s' : '');
-							markers[lat][lon]._icon.title = markers[lat][lon]._icon.title.replace(/\n.*$/, '\n' + winds[lat][lon]);
-							markers[lat][lon].setOpacity(isActive(sites[lat][lon], wind) ? 1 : .4);
+							let url;
+							if (store.get('overlay') != 'wind') {
+								url = markers[lat][lon]._icon.src;
+							} else {
+								let data = interpolate({lat, lon});
+								let wind = (data ? utils.wind2obj(data) : null);
+								url = getIconUrl(sites[lat][lon], wind);
+								winds[lat] = winds[lat] || {};
+								winds[lat][lon] = (wind ? wind.dir + '° ' + Math.round(wind.wind) + ' m/s' : '');
+								markers[lat][lon]._icon.title = markers[lat][lon]._icon.title.replace(/\n.*$/, '\n' + winds[lat][lon]);
+								markers[lat][lon].setOpacity(isActive(sites[lat][lon], wind) ? 1 : .4);
+							}
+							markers[lat][lon].setIcon(newIcon(url, map.getZoom()));
 						}
 					}
 				}
@@ -105,15 +107,20 @@ function isActive(sites, wind) {
 	return false;
 }
 
-function getIcon(sites, wind, size) {
+function getIconUrl(sites, wind) {
 	let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38">\n';
 	for (let site of sites) {
 		let color = (!wind ? 'white' : !isActive([site], wind) ? 'red' : Math.round(wind.wind * 10) / 10 >= 4 ? 'yellow' : 'lime');
 		svg += getCircleSlice(site.wind_usable_from - 90, site.wind_usable_to - 90, 38, color) + '\n';
 	}
 	svg += '<circle cx="19" cy="19" r="18" stroke="white" stroke-width="2" fill-opacity="0"/>\n</svg>';
+	return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+
+function newIcon(url, zoom) {
+	const size = zoom > 9 ? 38 : zoom > 6 ? 19 : zoom > 4 ? 9 : 5;
 	return L.icon({
-		iconUrl: 'data:image/svg+xml;utf8,' + encodeURIComponent(svg),
+		iconUrl: url,
 		iconSize: [size, size],
 		iconAnchor: [(size - 1) / 2, (size - 1) / 2],
 	});

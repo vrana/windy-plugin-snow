@@ -106,7 +106,7 @@ function () {
             return site.name + ' (' + site.superelevation + ' m)';
           });
 
-          var icon = getIcon(sites[lat][_lon], null, 19);
+          var icon = newIcon(getIconUrl(sites[lat][_lon], null), map.getZoom());
           var marker = L.marker([lat, _lon], {
             icon: icon,
             title: titles.join('\n') + '\n',
@@ -135,28 +135,29 @@ function () {
       }
 
       function redraw() {
-        if (store.get('overlay') != 'wind') {
-          return;
-        }
-
         interpolator(function (interpolate) {
           for (var _lat in markers) {
             for (var lon in markers[_lat]) {
               if (map.getBounds().contains(L.latLng(_lat, lon))) {
-                var data = interpolate({
-                  lat: _lat,
-                  lon: lon
-                });
-                var wind = data ? utils.wind2obj(data) : null;
-                var zoom = map.getZoom();
+                var url = void 0;
 
-                markers[_lat][lon].setIcon(getIcon(sites[_lat][lon], wind, zoom > 9 ? 38 : zoom > 6 ? 19 : zoom > 4 ? 9 : 5));
+                if (store.get('overlay') != 'wind') {
+                  url = markers[_lat][lon]._icon.src;
+                } else {
+                  var data = interpolate({
+                    lat: _lat,
+                    lon: lon
+                  });
+                  var wind = data ? utils.wind2obj(data) : null;
+                  url = getIconUrl(sites[_lat][lon], wind);
+                  winds[_lat] = winds[_lat] || {};
+                  winds[_lat][lon] = wind ? wind.dir + '° ' + Math.round(wind.wind) + ' m/s' : '';
+                  markers[_lat][lon]._icon.title = markers[_lat][lon]._icon.title.replace(/\n.*$/, '\n' + winds[_lat][lon]);
 
-                winds[_lat] = winds[_lat] || {};
-                winds[_lat][lon] = wind ? wind.dir + '° ' + Math.round(wind.wind) + ' m/s' : '';
-                markers[_lat][lon]._icon.title = markers[_lat][lon]._icon.title.replace(/\n.*$/, '\n' + winds[_lat][lon]);
+                  markers[_lat][lon].setOpacity(isActive(sites[_lat][lon], wind) ? 1 : .4);
+                }
 
-                markers[_lat][lon].setOpacity(isActive(sites[_lat][lon], wind) ? 1 : .4);
+                markers[_lat][lon].setIcon(newIcon(url, map.getZoom()));
               }
             }
           }
@@ -214,7 +215,7 @@ function () {
     return false;
   }
 
-  function getIcon(sites, wind, size) {
+  function getIconUrl(sites, wind) {
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38">\n';
     var _iteratorNormalCompletion3 = true;
     var _didIteratorError3 = false;
@@ -242,8 +243,13 @@ function () {
     }
 
     svg += '<circle cx="19" cy="19" r="18" stroke="white" stroke-width="2" fill-opacity="0"/>\n</svg>';
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+  }
+
+  function newIcon(url, zoom) {
+    var size = zoom > 9 ? 38 : zoom > 6 ? 19 : zoom > 4 ? 9 : 5;
     return L.icon({
-      iconUrl: 'data:image/svg+xml;utf8,' + encodeURIComponent(svg),
+      iconUrl: url,
       iconSize: [size, size],
       iconAnchor: [(size - 1) / 2, (size - 1) / 2]
     });
