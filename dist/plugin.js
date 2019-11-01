@@ -151,7 +151,7 @@ function () {
                   var wind = data ? utils.wind2obj(data) : null;
                   url = getIconUrl(sites[_lat][lon], wind);
                   winds[_lat] = winds[_lat] || {};
-                  winds[_lat][lon] = wind ? wind.dir + '° ' + Math.round(wind.wind) + ' m/s' : '';
+                  winds[_lat][lon] = wind ? wind.dir + '° ' + wind.wind.toFixed(1) + ' m/s' : '';
                   markers[_lat][lon]._icon.title = markers[_lat][lon]._icon.title.replace(/\n.*$/, '\n' + winds[_lat][lon]);
 
                   markers[_lat][lon].setOpacity(isActive(sites[_lat][lon], wind) ? 1 : .4);
@@ -180,6 +180,10 @@ function () {
   function isActive(sites, wind) {
     if (!wind) {
       return true;
+    }
+
+    if (wind.wind.toFixed(1) >= 8) {
+      return false;
     }
 
     var dir = wind.dir;
@@ -224,7 +228,7 @@ function () {
     try {
       for (var _iterator3 = sites[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
         var site = _step3.value;
-        var color = !wind ? 'white' : !isActive([site], wind) ? 'red' : Math.round(wind.wind * 10) / 10 >= 4 ? 'yellow' : 'lime';
+        var color = !wind ? 'white' : !isActive([site], wind) ? 'red' : wind.wind.toFixed(1) >= 4 ? 'yellow' : 'lime';
         svg += getCircleSlice(site.wind_usable_from - 90, site.wind_usable_to - 90, 38, color) + '\n';
       }
     } catch (err) {
