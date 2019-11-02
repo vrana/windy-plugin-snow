@@ -69,7 +69,7 @@ this.onopen = () => {
 								winds[lat] = winds[lat] || {};
 								winds[lat][lon] = (wind ? wind.dir + '° ' + wind.wind.toFixed(1) + ' m/s' : '');
 								markers[lat][lon]._icon.title = markers[lat][lon]._icon.title.replace(/\n.*$/, '\n' + winds[lat][lon]);
-								markers[lat][lon].setOpacity(isActive(sites[lat][lon], wind) ? 1 : .4);
+								markers[lat][lon].setOpacity(getColor(sites[lat][lon], wind) != 'red' ? 1 : .4);
 							}
 							markers[lat][lon].setIcon(newIcon(url, map.getZoom()));
 						}
@@ -92,29 +92,44 @@ this.onclose = () => {
 	}
 };
 
-function isActive(sites, wind) {
+function getColor(sites, wind) {
 	if (!wind) {
-		return true;
+		return 'white';
 	}
 	if (wind.wind.toFixed(1) >= 8) {
-		return false;
+		return 'red';
 	}
 	const dir = wind.dir;
+	let color = 'red';
 	for (let site of sites) {
 		let from = site.wind_usable_from;
 		let to = site.wind_usable_to;
-		if (from < to ? dir >= from && dir <= to : dir >= from || dir <= to) {
-			return true;
+		if (isDirIn(dir, from, to)) {
+			return wind.wind.toFixed(1) >= 4 ? 'yellow' : 'lime';
+		}
+		if (isDirIn(dir, from, to, 10)) {
+			color = 'yellow';
 		}
 	}
-	return false;
+	return color;
+}
+
+function isDirIn(dir, from, to, tolerance = 0) {
+	if (to - from == 360 || (to - from + 360) % 360 >= 360 - 2 * tolerance) {
+		return true;
+	}
+	from = (from - tolerance + 360) % 360;
+	to = (to + tolerance) % 360;
+	return (from < to
+		? dir >= from && dir <= to
+		: dir >= from || dir <= to
+	);
 }
 
 function getIconUrl(sites, wind) {
 	let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38">\n';
 	for (let site of sites) {
-		let color = (!wind ? 'white' : !isActive([site], wind) ? 'red' : wind.wind.toFixed(1) >= 4 ? 'yellow' : 'lime');
-		svg += getCircleSlice(site.wind_usable_from - 90, site.wind_usable_to - 90, 38, color) + '\n';
+		svg += getCircleSlice(site.wind_usable_from - 90, site.wind_usable_to - 90, 38, getColor([site], wind)) + '\n';
 	}
 	svg += '<circle cx="19" cy="19" r="18" stroke="white" stroke-width="2" fill-opacity="0"/>\n</svg>';
 	return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);

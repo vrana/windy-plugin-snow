@@ -154,7 +154,7 @@ function () {
                   winds[_lat][lon] = wind ? wind.dir + '° ' + wind.wind.toFixed(1) + ' m/s' : '';
                   markers[_lat][lon]._icon.title = markers[_lat][lon]._icon.title.replace(/\n.*$/, '\n' + winds[_lat][lon]);
 
-                  markers[_lat][lon].setOpacity(isActive(sites[_lat][lon], wind) ? 1 : .4);
+                  markers[_lat][lon].setOpacity(getColor(sites[_lat][lon], wind) != 'red' ? 1 : .4);
                 }
 
                 markers[_lat][lon].setIcon(newIcon(url, map.getZoom()));
@@ -177,16 +177,17 @@ function () {
     }
   };
 
-  function isActive(sites, wind) {
+  function getColor(sites, wind) {
     if (!wind) {
-      return true;
+      return 'white';
     }
 
     if (wind.wind.toFixed(1) >= 8) {
-      return false;
+      return 'red';
     }
 
     var dir = wind.dir;
+    var color = 'red';
     var _iteratorNormalCompletion2 = true;
     var _didIteratorError2 = false;
     var _iteratorError2 = undefined;
@@ -197,8 +198,12 @@ function () {
         var from = site.wind_usable_from;
         var to = site.wind_usable_to;
 
-        if (from < to ? dir >= from && dir <= to : dir >= from || dir <= to) {
-          return true;
+        if (isDirIn(dir, from, to)) {
+          return wind.wind.toFixed(1) >= 4 ? 'yellow' : 'lime';
+        }
+
+        if (isDirIn(dir, from, to, 10)) {
+          color = 'yellow';
         }
       }
     } catch (err) {
@@ -216,7 +221,19 @@ function () {
       }
     }
 
-    return false;
+    return color;
+  }
+
+  function isDirIn(dir, from, to) {
+    var tolerance = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
+
+    if (to - from == 360 || (to - from + 360) % 360 >= 360 - 2 * tolerance) {
+      return true;
+    }
+
+    from = (from - tolerance + 360) % 360;
+    to = (to + tolerance) % 360;
+    return from < to ? dir >= from && dir <= to : dir >= from || dir <= to;
   }
 
   function getIconUrl(sites, wind) {
@@ -228,8 +245,7 @@ function () {
     try {
       for (var _iterator3 = sites[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
         var site = _step3.value;
-        var color = !wind ? 'white' : !isActive([site], wind) ? 'red' : wind.wind.toFixed(1) >= 4 ? 'yellow' : 'lime';
-        svg += getCircleSlice(site.wind_usable_from - 90, site.wind_usable_to - 90, 38, color) + '\n';
+        svg += getCircleSlice(site.wind_usable_from - 90, site.wind_usable_to - 90, 38, getColor([site], wind)) + '\n';
       }
     } catch (err) {
       _didIteratorError3 = true;
