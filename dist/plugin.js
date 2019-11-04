@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -226,14 +226,8 @@ function () {
 
   function isDirIn(dir, from, to) {
     var tolerance = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
-
-    if (to - from == 360 || (to - from + 360) % 360 >= 360 - 2 * tolerance) {
-      return true;
-    }
-
-    from = (from - tolerance + 360) % 360;
-    to = (to + tolerance) % 360;
-    return from < to ? dir >= from && dir <= to : dir >= from || dir <= to;
+    to += to < from ? 360 : 0;
+    return dir >= from - tolerance && dir <= to + tolerance || dir <= to + tolerance - 360 || dir >= from - tolerance + 360;
   }
 
   function getIconUrl(sites, wind) {
