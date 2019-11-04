@@ -158,19 +158,13 @@ function () {
           var icon = newIcon(getIconUrl(sites[lat][_lon], null), map.getZoom());
           var marker = L.marker([lat, _lon], {
             icon: icon,
-            title: unhtml(tooltip()),
             riseOnHover: true
           }).addTo(map);
-
-          if (sites[lat][_lon].length > 1 || L.Browser.mobile) {
-            marker.bindPopup(tooltip);
-          } else {
-            marker.on('click', function () {
-              return open(sites[lat][_lon][0].url);
-            });
-          }
-
-          marker.on(L.Browser.mobile ? 'popupopen' : 'mouseover', function () {
+          marker.bindPopup(tooltip);
+          marker.on('mouseover', function () {
+            return marker.openPopup();
+          });
+          marker.on('popupopen', function () {
             return loadData('forecast', {
               model: store.get('product') == 'gfs' ? 'gfs' : 'ecmwf',
               lat: +lat,
@@ -178,12 +172,7 @@ function () {
             }).then(function (forecast) {
               forecasts[lat] = forecasts[lat] || {};
               forecasts[lat][_lon] = forecast.data;
-              marker._icon.title = unhtml(tooltip());
-              var popup = marker.getPopup();
-
-              if (popup) {
-                popup.setContent(tooltip());
-              }
+              marker.getPopup().setContent(tooltip());
             });
           });
           markers[lat] = markers[lat] || {};
@@ -219,7 +208,6 @@ function () {
 
                   winds[_lat] = winds[_lat] || {};
                   winds[_lat][lon] = wind ? wind.dir + '° ' + wind.wind.toFixed(1) + ' m/s' : '';
-                  markers[_lat][lon]._icon.title = unhtml(getTooltip(sites[_lat][lon])());
 
                   markers[_lat][lon].setOpacity(getColor(sites[_lat][lon], wind) != 'red' ? 1 : .4);
                 }
@@ -345,9 +333,5 @@ function () {
 
   function html(s) {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
-  }
-
-  function unhtml(s) {
-    return s.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
   }
 });

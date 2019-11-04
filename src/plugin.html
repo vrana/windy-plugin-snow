@@ -70,20 +70,13 @@ this.onopen = () => {
 			for (const lon in sites[lat]) {
 				const tooltip = getTooltip(sites[lat][lon]);
 				const icon = newIcon(getIconUrl(sites[lat][lon], null), map.getZoom());
-				const marker = L.marker([lat, lon], {icon, title: unhtml(tooltip()), riseOnHover: true}).addTo(map);
-				if (sites[lat][lon].length > 1 || L.Browser.mobile) {
-					marker.bindPopup(tooltip);
-				} else {
-					marker.on('click', () => open(sites[lat][lon][0].url));
-				}
-				marker.on((L.Browser.mobile ? 'popupopen' : 'mouseover'), () => loadData('forecast', {model: store.get('product') == 'gfs' ? 'gfs' : 'ecmwf', lat: +lat, lon: +lon}).then(forecast => {
+				const marker = L.marker([lat, lon], {icon, riseOnHover: true}).addTo(map);
+				marker.bindPopup(tooltip);
+				marker.on('mouseover', () => marker.openPopup());
+				marker.on('popupopen', () => loadData('forecast', {model: store.get('product') == 'gfs' ? 'gfs' : 'ecmwf', lat: +lat, lon: +lon}).then(forecast => {
 					forecasts[lat] = forecasts[lat] || {};
 					forecasts[lat][lon] = forecast.data;
-					marker._icon.title = unhtml(tooltip());
-					const popup = marker.getPopup();
-					if (popup) {
-						popup.setContent(tooltip());
-					}
+					marker.getPopup().setContent(tooltip());
 				}));
 				markers[lat] = markers[lat] || {};
 				markers[lat][lon] = marker;
@@ -104,7 +97,6 @@ this.onopen = () => {
 								markers[lat][lon].setIcon(newIcon(getIconUrl(sites[lat][lon], wind), map.getZoom()));
 								winds[lat] = winds[lat] || {};
 								winds[lat][lon] = (wind ? wind.dir + '° ' + wind.wind.toFixed(1) + ' m/s' : '');
-								markers[lat][lon]._icon.title = unhtml(getTooltip(sites[lat][lon])());
 								markers[lat][lon].setOpacity(getColor(sites[lat][lon], wind) != 'red' ? 1 : .4);
 							}
 						}
@@ -183,10 +175,6 @@ function getCircleSlice(startAngle, endAngle, size, color) {
 
 function html(s) {
 	return s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
-}
-
-function unhtml(s) {
-	return s.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
 }
 </script>
 </plugin>
