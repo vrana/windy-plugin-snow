@@ -28,14 +28,21 @@ function () {
 
   var store = W.require('store');
 
+  var pluginDataLoader = W.require('pluginDataLoader');
+
   var map = W.require('map');
 
   var interpolator = W.require('interpolator');
 
   var broadcast = W.require('broadcast');
 
+  var loadData = pluginDataLoader({
+    key: 'vVGMVsbSz6cWtZsxMPQURL88LKFYpojx',
+    plugin: 'windy-plugin-pg-mapa'
+  });
   var markers = {};
   var winds = {};
+  var forecasts = {};
 
   this.onopen = function () {
     fetch('https://www.paragliding-mapa.cz/api/v0.1/launch').then(function (response) {
@@ -87,13 +94,58 @@ function () {
       function getTooltip(sites) {
         return function () {
           var wind;
+          var forecast;
           var tooltips = sites.map(function (site) {
             wind = wind || winds[site.latitude] && winds[site.latitude][site.longitude];
+            forecast = forecast || forecasts[site.latitude] && forecasts[site.latitude][site.longitude];
             return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> (' + site.superelevation + ' m)';
           });
+          var extra = [];
 
           if (wind) {
-            tooltips.push(wind);
+            extra.push(wind);
+          }
+
+          if (forecast) {
+            var path = store.get('path').replace(/\//g, '-');
+
+            for (var date in forecast.data) {
+              if (path.startsWith(date)) {
+                var _iteratorNormalCompletion2 = true;
+                var _didIteratorError2 = false;
+                var _iteratorError2 = undefined;
+
+                try {
+                  for (var _iterator2 = forecast.data[date][Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                    var data = _step2.value;
+
+                    if (data.hour == path.replace(/.*-0?/, '')) {
+                      extra.push(data.rain ? '🌧 ' + data.mm + ' mm' : '☀');
+                      break;
+                    }
+                  }
+                } catch (err) {
+                  _didIteratorError2 = true;
+                  _iteratorError2 = err;
+                } finally {
+                  try {
+                    if (!_iteratorNormalCompletion2 && _iterator2["return"] != null) {
+                      _iterator2["return"]();
+                    }
+                  } finally {
+                    if (_didIteratorError2) {
+                      throw _iteratorError2;
+                    }
+                  }
+                }
+
+                break;
+              }
+            }
+          }
+
+          if (extra.length) {
+            tooltips.push(extra.join(' '));
           }
 
           return tooltips.join('<br>');
@@ -118,6 +170,22 @@ function () {
             });
           }
 
+          marker.on(L.Browser.mobile ? 'popupopen' : 'mouseover', function () {
+            return loadData('forecast', {
+              model: store.get('product') == 'gfs' ? 'gfs' : 'ecmwf',
+              lat: +lat,
+              lon: +_lon
+            }).then(function (forecast) {
+              forecasts[lat] = forecasts[lat] || {};
+              forecasts[lat][_lon] = forecast.data;
+              marker._icon.title = unhtml(tooltip());
+              var popup = marker.getPopup();
+
+              if (popup) {
+                popup.setContent(tooltip());
+              }
+            });
+          });
           markers[lat] = markers[lat] || {};
           markers[lat][_lon] = marker;
         };
@@ -136,25 +204,25 @@ function () {
           for (var _lat in markers) {
             for (var lon in markers[_lat]) {
               if (map.getBounds().contains(L.latLng(_lat, lon))) {
-                var url = void 0;
-
                 if (store.get('overlay') != 'wind') {
-                  url = markers[_lat][lon]._icon.src;
+                  var url = markers[_lat][lon]._icon.src;
+
+                  markers[_lat][lon].setIcon(newIcon(url, map.getZoom()));
                 } else {
                   var data = interpolate({
                     lat: _lat,
                     lon: lon
                   });
                   var wind = data ? utils.wind2obj(data) : null;
-                  url = getIconUrl(sites[_lat][lon], wind);
+
+                  markers[_lat][lon].setIcon(newIcon(getIconUrl(sites[_lat][lon], wind), map.getZoom()));
+
                   winds[_lat] = winds[_lat] || {};
                   winds[_lat][lon] = wind ? wind.dir + '° ' + wind.wind.toFixed(1) + ' m/s' : '';
                   markers[_lat][lon]._icon.title = unhtml(getTooltip(sites[_lat][lon])());
 
                   markers[_lat][lon].setOpacity(getColor(sites[_lat][lon], wind) != 'red' ? 1 : .4);
                 }
-
-                markers[_lat][lon].setIcon(newIcon(url, map.getZoom()));
               }
             }
           }
@@ -185,13 +253,13 @@ function () {
 
     var dir = wind.dir;
     var color = 'red';
-    var _iteratorNormalCompletion2 = true;
-    var _didIteratorError2 = false;
-    var _iteratorError2 = undefined;
+    var _iteratorNormalCompletion3 = true;
+    var _didIteratorError3 = false;
+    var _iteratorError3 = undefined;
 
     try {
-      for (var _iterator2 = sites[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-        var site = _step2.value;
+      for (var _iterator3 = sites[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+        var site = _step3.value;
         var from = site.wind_usable_from;
         var to = site.wind_usable_to;
 
@@ -204,16 +272,16 @@ function () {
         }
       }
     } catch (err) {
-      _didIteratorError2 = true;
-      _iteratorError2 = err;
+      _didIteratorError3 = true;
+      _iteratorError3 = err;
     } finally {
       try {
-        if (!_iteratorNormalCompletion2 && _iterator2["return"] != null) {
-          _iterator2["return"]();
+        if (!_iteratorNormalCompletion3 && _iterator3["return"] != null) {
+          _iterator3["return"]();
         }
       } finally {
-        if (_didIteratorError2) {
-          throw _iteratorError2;
+        if (_didIteratorError3) {
+          throw _iteratorError3;
         }
       }
     }
@@ -229,26 +297,26 @@ function () {
 
   function getIconUrl(sites, wind) {
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38">\n';
-    var _iteratorNormalCompletion3 = true;
-    var _didIteratorError3 = false;
-    var _iteratorError3 = undefined;
+    var _iteratorNormalCompletion4 = true;
+    var _didIteratorError4 = false;
+    var _iteratorError4 = undefined;
 
     try {
-      for (var _iterator3 = sites[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-        var site = _step3.value;
+      for (var _iterator4 = sites[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+        var site = _step4.value;
         svg += getCircleSlice(site.wind_usable_from - 90, site.wind_usable_to - 90, 38, getColor([site], wind)) + '\n';
       }
     } catch (err) {
-      _didIteratorError3 = true;
-      _iteratorError3 = err;
+      _didIteratorError4 = true;
+      _iteratorError4 = err;
     } finally {
       try {
-        if (!_iteratorNormalCompletion3 && _iterator3["return"] != null) {
-          _iterator3["return"]();
+        if (!_iteratorNormalCompletion4 && _iterator4["return"] != null) {
+          _iterator4["return"]();
         }
       } finally {
-        if (_didIteratorError3) {
-          throw _iteratorError3;
+        if (_didIteratorError4) {
+          throw _iteratorError4;
         }
       }
     }

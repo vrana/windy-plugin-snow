@@ -3,11 +3,18 @@
 import broadcast from '@windy/broadcast';
 import interpolator from '@windy/interpolator';
 import map from '@windy/map';
+import pluginDataLoader from '@windy/pluginDataLoader';
 import store from '@windy/store';
 import utils from '@windy/utils';
 
+const loadData = pluginDataLoader({
+	key: 'vVGMVsbSz6cWtZsxMPQURL88LKFYpojx',
+	plugin: 'windy-plugin-pg-mapa',
+});
+
 const markers = {};
 const winds = {};
+const forecasts = {};
 
 this.onopen = () => {
 	fetch('https://www.paragliding-mapa.cz/api/v0.1/launch').then(response => response.json()).then(launch => {
@@ -28,12 +35,32 @@ this.onopen = () => {
 		function getTooltip(sites) {
 			return () => {
 				let wind;
+				let forecast;
 				const tooltips = sites.map(site => {
 					wind = wind || (winds[site.latitude] && winds[site.latitude][site.longitude]);
+					forecast = forecast || (forecasts[site.latitude] && forecasts[site.latitude][site.longitude]);
 					return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> (' + site.superelevation + ' m)';
 				});
+				const extra = [];
 				if (wind) {
-					tooltips.push(wind);
+					extra.push(wind);
+				}
+				if (forecast) {
+					const path = store.get('path').replace(/\//g, '-');
+					for (const date in forecast.data) {
+						if (path.startsWith(date)) {
+							for (const data of forecast.data[date]) {
+								if (data.hour == path.replace(/.*-0?/, '')) {
+									extra.push(data.rain ? '🌧 ' + data.mm + ' mm' : '☀');
+									break;
+								}
+							}
+							break;
+						}
+					}
+				}
+				if (extra.length) {
+					tooltips.push(extra.join(' '));
 				}
 				return tooltips.join('<br>');
 			};
@@ -49,6 +76,15 @@ this.onopen = () => {
 				} else {
 					marker.on('click', () => open(sites[lat][lon][0].url));
 				}
+				marker.on((L.Browser.mobile ? 'popupopen' : 'mouseover'), () => loadData('forecast', {model: store.get('product') == 'gfs' ? 'gfs' : 'ecmwf', lat: +lat, lon: +lon}).then(forecast => {
+					forecasts[lat] = forecasts[lat] || {};
+					forecasts[lat][lon] = forecast.data;
+					marker._icon.title = unhtml(tooltip());
+					const popup = marker.getPopup();
+					if (popup) {
+						popup.setContent(tooltip());
+					}
+				}));
 				markers[lat] = markers[lat] || {};
 				markers[lat][lon] = marker;
 			}
@@ -59,19 +95,18 @@ this.onopen = () => {
 				for (const lat in markers) {
 					for (const lon in markers[lat]) {
 						if (map.getBounds().contains(L.latLng(lat, lon))) {
-							let url;
 							if (store.get('overlay') != 'wind') {
-								url = markers[lat][lon]._icon.src;
+								const url = markers[lat][lon]._icon.src;
+								markers[lat][lon].setIcon(newIcon(url, map.getZoom()));
 							} else {
 								const data = interpolate({lat, lon});
 								const wind = (data ? utils.wind2obj(data) : null);
-								url = getIconUrl(sites[lat][lon], wind);
+								markers[lat][lon].setIcon(newIcon(getIconUrl(sites[lat][lon], wind), map.getZoom()));
 								winds[lat] = winds[lat] || {};
 								winds[lat][lon] = (wind ? wind.dir + '° ' + wind.wind.toFixed(1) + ' m/s' : '');
 								markers[lat][lon]._icon.title = unhtml(getTooltip(sites[lat][lon])());
 								markers[lat][lon].setOpacity(getColor(sites[lat][lon], wind) != 'red' ? 1 : .4);
 							}
-							markers[lat][lon].setIcon(newIcon(url, map.getZoom()));
 						}
 					}
 				}
