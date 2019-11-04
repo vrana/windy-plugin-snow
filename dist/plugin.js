@@ -165,7 +165,7 @@ function () {
             return marker.openPopup();
           });
           marker.on('popupopen', function () {
-            return loadData('forecast', {
+            return forecasts[lat] && forecasts[lat][_lon] || loadData('forecast', {
               model: store.get('product') == 'gfs' ? 'gfs' : 'ecmwf',
               lat: +lat,
               lon: +_lon

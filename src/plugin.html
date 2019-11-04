@@ -73,7 +73,7 @@ this.onopen = () => {
 				const marker = L.marker([lat, lon], {icon, riseOnHover: true}).addTo(map);
 				marker.bindPopup(tooltip);
 				marker.on('mouseover', () => marker.openPopup());
-				marker.on('popupopen', () => loadData('forecast', {model: store.get('product') == 'gfs' ? 'gfs' : 'ecmwf', lat: +lat, lon: +lon}).then(forecast => {
+				marker.on('popupopen', () => (forecasts[lat] && forecasts[lat][lon]) || loadData('forecast', {model: store.get('product') == 'gfs' ? 'gfs' : 'ecmwf', lat: +lat, lon: +lon}).then(forecast => {
 					forecasts[lat] = forecasts[lat] || {};
 					forecasts[lat][lon] = forecast.data;
 					marker.getPopup().setContent(tooltip());
