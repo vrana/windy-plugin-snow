@@ -102,19 +102,16 @@ function () {
 
       var _loop = function _loop(lat) {
         var _loop2 = function _loop2(_lon) {
-          var titles = sites[lat][_lon].map(function (site) {
-            return site.name + ' (' + site.superelevation + ' m)';
-          });
-
+          var tooltip = getTooltip(sites[lat][_lon]);
           var icon = newIcon(getIconUrl(sites[lat][_lon], null), map.getZoom());
           var marker = L.marker([lat, _lon], {
             icon: icon,
-            title: titles.join('\n') + '\n',
+            title: unhtml(tooltip()),
             riseOnHover: true
           }).addTo(map);
 
           if (sites[lat][_lon].length > 1 || L.Browser.mobile) {
-            marker.bindPopup(getTooltip(sites[lat][_lon]));
+            marker.bindPopup(tooltip);
           } else {
             marker.on('click', function () {
               return open(sites[lat][_lon][0].url);
@@ -152,7 +149,7 @@ function () {
                   url = getIconUrl(sites[_lat][lon], wind);
                   winds[_lat] = winds[_lat] || {};
                   winds[_lat][lon] = wind ? wind.dir + '° ' + wind.wind.toFixed(1) + ' m/s' : '';
-                  markers[_lat][lon]._icon.title = markers[_lat][lon]._icon.title.replace(/\n.*$/, '\n' + winds[_lat][lon]);
+                  markers[_lat][lon]._icon.title = unhtml(getTooltip(sites[_lat][lon])());
 
                   markers[_lat][lon].setOpacity(getColor(sites[_lat][lon], wind) != 'red' ? 1 : .4);
                 }
@@ -280,5 +277,9 @@ function () {
 
   function html(s) {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  }
+
+  function unhtml(s) {
+    return s.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
   }
 });
