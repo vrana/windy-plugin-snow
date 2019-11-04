@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -106,17 +106,17 @@ function () {
             extra.push(wind);
           }
 
-          if (forecast) {
+          if (forecast && !/FAKE/.test(forecast.header.note)) {
             var path = store.get('path').replace(/\//g, '-');
 
-            for (var date in forecast.data) {
+            for (var date in forecast.data.data) {
               if (path.startsWith(date)) {
                 var _iteratorNormalCompletion2 = true;
                 var _didIteratorError2 = false;
                 var _iteratorError2 = undefined;
 
                 try {
-                  for (var _iterator2 = forecast.data[date][Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                  for (var _iterator2 = forecast.data.data[date][Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
                     var data = _step2.value;
 
                     if (data.hour == path.replace(/.*-0?/, '')) {
@@ -148,7 +148,7 @@ function () {
             tooltips.push(extra.join(' '));
           }
 
-          return tooltips.join('<br>');
+          return '<div style="min-width: 150px;">' + tooltips.join('<br>') + '</div>';
         };
       }
 
@@ -171,7 +171,7 @@ function () {
               lon: +_lon
             }).then(function (forecast) {
               forecasts[lat] = forecasts[lat] || {};
-              forecasts[lat][_lon] = forecast.data;
+              forecasts[lat][_lon] = forecast;
               marker.getPopup().setContent(tooltip());
             });
           });

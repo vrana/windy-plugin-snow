@@ -45,11 +45,11 @@ this.onopen = () => {
 				if (wind) {
 					extra.push(wind);
 				}
-				if (forecast) {
+				if (forecast && !/FAKE/.test(forecast.header.note)) {
 					const path = store.get('path').replace(/\//g, '-');
-					for (const date in forecast.data) {
+					for (const date in forecast.data.data) {
 						if (path.startsWith(date)) {
-							for (const data of forecast.data[date]) {
+							for (const data of forecast.data.data[date]) {
 								if (data.hour == path.replace(/.*-0?/, '')) {
 									extra.push(data.rain ? '🌧 ' + data.mm + ' mm' : '☀');
 									break;
@@ -62,7 +62,7 @@ this.onopen = () => {
 				if (extra.length) {
 					tooltips.push(extra.join(' '));
 				}
-				return tooltips.join('<br>');
+				return '<div style="min-width: 150px;">' + tooltips.join('<br>') + '</div>';
 			};
 		}
 		
@@ -73,11 +73,13 @@ this.onopen = () => {
 				const marker = L.marker([lat, lon], {icon, riseOnHover: true}).addTo(map);
 				marker.bindPopup(tooltip);
 				marker.on('mouseover', () => marker.openPopup());
-				marker.on('popupopen', () => (forecasts[lat] && forecasts[lat][lon]) || loadData('forecast', {model: store.get('product') == 'gfs' ? 'gfs' : 'ecmwf', lat: +lat, lon: +lon}).then(forecast => {
-					forecasts[lat] = forecasts[lat] || {};
-					forecasts[lat][lon] = forecast.data;
-					marker.getPopup().setContent(tooltip());
-				}));
+				marker.on('popupopen', () => (forecasts[lat] && forecasts[lat][lon]) ||
+					loadData('forecast', {model: store.get('product') == 'gfs' ? 'gfs' : 'ecmwf', lat: +lat, lon: +lon}).then(forecast => {
+						forecasts[lat] = forecasts[lat] || {};
+						forecasts[lat][lon] = forecast;
+						marker.getPopup().setContent(tooltip());
+					})
+				);
 				markers[lat] = markers[lat] || {};
 				markers[lat][lon] = marker;
 			}
