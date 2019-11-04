@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
