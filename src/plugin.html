@@ -47,9 +47,9 @@ this.onopen = () => {
 				}
 				if (forecast && !/FAKE/.test(forecast.header.note)) {
 					const path = store.get('path').replace(/\//g, '-');
-					for (const date in forecast.data.data) {
+					for (const date in forecast.data) {
 						if (path.startsWith(date)) {
-							for (const data of forecast.data.data[date]) {
+							for (const data of forecast.data[date]) {
 								if (data.hour == path.replace(/.*-0?/, '')) {
 									extra.push(data.rain ? '🌧 ' + data.mm + ' mm' : '☀');
 									break;
@@ -76,7 +76,7 @@ this.onopen = () => {
 				marker.on('popupopen', () => (forecasts[lat] && forecasts[lat][lon]) ||
 					loadData('forecast', {model: store.get('product') == 'gfs' ? 'gfs' : 'ecmwf', lat: +lat, lon: +lon}).then(forecast => {
 						forecasts[lat] = forecasts[lat] || {};
-						forecasts[lat][lon] = forecast;
+						forecasts[lat][lon] = forecast.data;
 						marker.getPopup().setContent(tooltip());
 					})
 				);
