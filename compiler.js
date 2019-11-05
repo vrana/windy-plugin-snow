@@ -75,8 +75,8 @@ let config
 		if( prog.serve ) await startServer()
 
 		if(prog.watch) {
-			c.start(`Staring watch on ${ gray( srcDir )}...`)
-      chokidar.watch([srcDir]).on('change', onChange )
+			c.start(`Staring watch on ${ gray( srcDir )} and ${ gray( 'package.json' )}...`)
+      chokidar.watch([srcDir, 'package.json']).on('change', onChange )
 		}
 
 
