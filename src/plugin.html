@@ -73,13 +73,15 @@ this.onopen = () => {
 				const marker = L.marker([lat, lon], {icon, riseOnHover: true}).addTo(map);
 				marker.bindPopup(tooltip);
 				marker.on('mouseover', () => marker.openPopup());
-				marker.on('popupopen', () => (forecasts[lat] && forecasts[lat][lon]) ||
-					loadData('forecast', {model: store.get('product') == 'gfs' ? 'gfs' : 'ecmwf', lat: +lat, lon: +lon}).then(forecast => {
-						forecasts[lat] = forecasts[lat] || {};
-						forecasts[lat][lon] = forecast.data;
-						marker.getPopup().setContent(tooltip());
-					})
-				);
+				marker.on('popupopen', () => {
+					if (!forecasts[lat] || !forecasts[lat][lon]) {
+						loadData('forecast', {model: store.get('product') == 'gfs' ? 'gfs' : 'ecmwf', lat: +lat, lon: +lon}).then(forecast => {
+							forecasts[lat] = forecasts[lat] || {};
+							forecasts[lat][lon] = forecast.data;
+							marker.setPopupContent(tooltip());
+						});
+					}
+				});
 				markers[lat] = markers[lat] || {};
 				markers[lat][lon] = marker;
 			}
@@ -100,6 +102,7 @@ this.onopen = () => {
 								winds[lat] = winds[lat] || {};
 								winds[lat][lon] = (wind ? wind.dir + '° ' + wind.wind.toFixed(1) + ' m/s' : '');
 								markers[lat][lon].setOpacity(getColor(sites[lat][lon], wind) != 'red' ? 1 : .4);
+								markers[lat][lon].setPopupContent(getTooltip(sites[lat][lon])());
 							}
 						}
 					}

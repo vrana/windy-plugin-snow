@@ -165,15 +165,17 @@ function () {
             return marker.openPopup();
           });
           marker.on('popupopen', function () {
-            return forecasts[lat] && forecasts[lat][_lon] || loadData('forecast', {
-              model: store.get('product') == 'gfs' ? 'gfs' : 'ecmwf',
-              lat: +lat,
-              lon: +_lon
-            }).then(function (forecast) {
-              forecasts[lat] = forecasts[lat] || {};
-              forecasts[lat][_lon] = forecast.data;
-              marker.getPopup().setContent(tooltip());
-            });
+            if (!forecasts[lat] || !forecasts[lat][_lon]) {
+              loadData('forecast', {
+                model: store.get('product') == 'gfs' ? 'gfs' : 'ecmwf',
+                lat: +lat,
+                lon: +_lon
+              }).then(function (forecast) {
+                forecasts[lat] = forecasts[lat] || {};
+                forecasts[lat][_lon] = forecast.data;
+                marker.setPopupContent(tooltip());
+              });
+            }
           });
           markers[lat] = markers[lat] || {};
           markers[lat][_lon] = marker;
@@ -210,6 +212,8 @@ function () {
                   winds[_lat][lon] = wind ? wind.dir + '° ' + wind.wind.toFixed(1) + ' m/s' : '';
 
                   markers[_lat][lon].setOpacity(getColor(sites[_lat][lon], wind) != 'red' ? 1 : .4);
+
+                  markers[_lat][lon].setPopupContent(getTooltip(sites[_lat][lon])());
                 }
               }
             }
