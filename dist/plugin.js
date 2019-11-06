@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -130,11 +130,11 @@ function () {
                     lat: _lat,
                     lon: lon
                   });
-                  wind = data ? utils.wind2obj(data) : null;
+                  wind = data && utils.wind2obj(data);
                 } else if (loadForecast(_lat, lon)) {
                   var _data = getForecast(forecasts[getModel()][_lat][lon]);
 
-                  wind = {
+                  wind = _data && {
                     wind: _data.wind,
                     dir: _data.windDir
                   };
@@ -186,7 +186,7 @@ function () {
     }).then(function (forecast) {
       forecasts[model][lat][lon] = forecast.data;
       var data = getForecast(forecast.data);
-      updateMarker(lat, lon, {
+      updateMarker(lat, lon, data && {
         wind: data.wind,
         dir: data.windDir
       });
@@ -217,11 +217,11 @@ function () {
     }
 
     if (forecast && !/FAKE/.test(forecast.header.note)) {
-      var sunrise = new Date(forecast.header.sunrise).getHours();
-      var sunset = new Date(forecast.header.sunset).getHours();
       var data = getForecast(forecast);
 
       if (data) {
+        var sunrise = new Date(forecast.header.sunrise).getHours();
+        var sunset = new Date(forecast.header.sunset).getHours();
         extra.push(data.rain ? '🌧 ' + data.mm + ' mm' : data.hour > sunrise && data.hour <= sunset ? '☀' : '☾');
       }
     }

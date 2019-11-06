@@ -52,10 +52,10 @@ this.onopen = () => {
 							let wind;
 							if (store.get('overlay') == 'wind') {
 								const data = interpolate({lat, lon});
-								wind = (data ? utils.wind2obj(data) : null);
+								wind = data && utils.wind2obj(data);
 							} else if (loadForecast(lat, lon)) {
 								const data = getForecast(forecasts[getModel()][lat][lon]);
-								wind = {wind: data.wind, dir: data.windDir};
+								wind = data && {wind: data.wind, dir: data.windDir};
 							}
 							if (winds[lat]) {
 								delete winds[lat][lon];
@@ -95,7 +95,7 @@ function loadForecast(lat, lon) {
 	loadData('forecast', {model, lat: +lat, lon: +lon}).then(forecast => {
 		forecasts[model][lat][lon] = forecast.data;
 		const data = getForecast(forecast.data);
-		updateMarker(lat, lon, {wind: data.wind, dir: data.windDir});
+		updateMarker(lat, lon, data && {wind: data.wind, dir: data.windDir});
 	});
 }
 
@@ -121,10 +121,10 @@ function getTooltip(sites) {
 		extra.push(wind.dir + '° ' + wind.wind.toFixed(1) + ' m/s');
 	}
 	if (forecast && !/FAKE/.test(forecast.header.note)) {
-		const sunrise = new Date(forecast.header.sunrise).getHours();
-		const sunset = new Date(forecast.header.sunset).getHours();
 		const data = getForecast(forecast);
 		if (data) {
+			const sunrise = new Date(forecast.header.sunrise).getHours();
+			const sunset = new Date(forecast.header.sunset).getHours();
 			extra.push(data.rain ? '🌧 ' + data.mm + ' mm' : (data.hour > sunrise && data.hour <= sunset ? '☀' : '☾'));
 		}
 	}
