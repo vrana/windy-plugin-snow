@@ -222,7 +222,8 @@ function () {
       if (data) {
         var sunrise = new Date(forecast.header.sunrise).getHours();
         var sunset = new Date(forecast.header.sunset).getHours();
-        extra.push(data.rain ? '🌧 ' + data.mm + ' mm' : data.hour > sunrise && data.hour <= sunset ? '☀' : '☾');
+        var icon = data.icon2 + (data.hour > sunrise && data.hour <= sunset ? '' : '_night_' + data.moonPhase);
+        extra.push('<img src="img/icons4/png_25px/' + icon + '.png" style="height: 1.3em; vertical-align: middle;">' + (data.mm ? ' ' + data.mm + ' mm' : ''));
       }
     }
 
