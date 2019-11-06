@@ -222,7 +222,7 @@ function () {
     var extra = [];
 
     if (wind) {
-      extra.push(wind.dir + '° ' + wind.wind.toFixed(1) + ' m/s');
+      extra.push('<span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '° ' + wind.wind.toFixed(1) + ' m/s');
     }
 
     if (forecast && !/FAKE/.test(forecast.header.note)) {
@@ -240,7 +240,7 @@ function () {
       tooltips.push(extra.join(' '));
     }
 
-    return '<div style="min-width: 150px;">' + tooltips.join('<br>') + '</div>';
+    return '<div style="min-width: 160px;">' + tooltips.join('<br>') + '</div>';
   }
 
   function getModel() {
