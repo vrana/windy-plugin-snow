@@ -102,6 +102,7 @@ function loadForecast(lat, lon) {
 function updateMarker(lat, lon, wind) {
 	winds[lat] = winds[lat] || {};
 	winds[lat][lon] = winds[lat][lon] || wind;
+	wind = winds[lat][lon];
 	markers[lat][lon].setIcon(newIcon(getIconUrl(sites[lat][lon], wind), map.getZoom()));
 	markers[lat][lon].setOpacity(getColor(sites[lat][lon], wind) != 'red' ? 1 : .4);
 	markers[lat][lon].setPopupContent(getTooltip(sites[lat][lon]));
