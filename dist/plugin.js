@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -46,6 +46,16 @@ function () {
   var forecasts = {};
 
   this.onopen = function () {
+    if (Object.keys(sites).length) {
+      for (var lat in markers) {
+        for (var lon in markers[lat]) {
+          markers[lat][lon].addTo(map);
+        }
+      }
+
+      return;
+    }
+
     fetch('https://www.paragliding-mapa.cz/api/v0.1/launch').then(function (response) {
       return response.json();
     }).then(function (launch) {
@@ -58,15 +68,15 @@ function () {
           var site = _step.value;
 
           for (var _lat2 in sites) {
-            for (var lon in sites[_lat2]) {
+            for (var _lon in sites[_lat2]) {
               if (utils.isNear({
                 lat: _lat2,
-                lon: lon
+                lon: _lon
               }, {
                 lat: site.latitude,
                 lon: site.longitude
               })) {
-                sites[_lat2][lon].push(site);
+                sites[_lat2][_lon].push(site);
 
                 continue launchLoop;
               }
@@ -91,70 +101,31 @@ function () {
         }
       }
 
-      var _loop = function _loop(lat) {
-        var _loop2 = function _loop2(_lon) {
-          var icon = newIcon(getIconUrl(sites[lat][_lon], null), map.getZoom());
-          var marker = L.marker([lat, _lon], {
+      var _loop = function _loop(_lat) {
+        var _loop2 = function _loop2(_lon2) {
+          var icon = newIcon(getIconUrl(sites[_lat][_lon2], null), map.getZoom());
+          var marker = L.marker([_lat, _lon2], {
             icon: icon,
             riseOnHover: true
           }).addTo(map);
-          marker.bindPopup(getTooltip(sites[lat][_lon]));
+          marker.bindPopup(getTooltip(sites[_lat][_lon2]));
           marker.on('mouseover', function () {
             return marker.openPopup();
           });
           marker.on('popupopen', function () {
-            return loadForecast(lat, _lon);
+            return loadForecast(_lat, _lon2);
           });
-          markers[lat] = markers[lat] || {};
-          markers[lat][_lon] = marker;
+          markers[_lat] = markers[_lat] || {};
+          markers[_lat][_lon2] = marker;
         };
 
-        for (var _lon in sites[lat]) {
-          _loop2(_lon);
+        for (var _lon2 in sites[_lat]) {
+          _loop2(_lon2);
         }
       };
 
-      for (var lat in sites) {
-        _loop(lat);
-      }
-
-      function redraw() {
-        interpolator(function (interpolate) {
-          for (var _lat in markers) {
-            for (var lon in markers[_lat]) {
-              if (map.getBounds().contains(L.latLng(_lat, lon))) {
-                var wind = void 0;
-
-                if (store.get('overlay') == 'wind') {
-                  var data = interpolate({
-                    lat: _lat,
-                    lon: lon
-                  });
-                  wind = data && utils.wind2obj(data);
-                } else if (loadForecast(_lat, lon)) {
-                  var _data = getForecast(forecasts[getModel()][_lat][lon]);
-
-                  wind = _data && {
-                    wind: _data.wind,
-                    dir: _data.windDir
-                  };
-                }
-
-                if (winds[_lat]) {
-                  delete winds[_lat][lon];
-                }
-
-                if (!wind) {
-                  var url = markers[_lat][lon]._icon.src;
-
-                  markers[_lat][lon].setIcon(newIcon(url, map.getZoom()));
-                } else {
-                  updateMarker(_lat, lon, wind);
-                }
-              }
-            }
-          }
-        });
+      for (var _lat in sites) {
+        _loop(_lat);
       }
 
       redraw();
@@ -169,6 +140,44 @@ function () {
       }
     }
   };
+
+  function redraw() {
+    interpolator(function (interpolate) {
+      for (var lat in markers) {
+        for (var lon in markers[lat]) {
+          if (map.getBounds().contains(L.latLng(lat, lon))) {
+            var wind = void 0;
+
+            if (store.get('overlay') == 'wind') {
+              var data = interpolate({
+                lat: lat,
+                lon: lon
+              });
+              wind = data && utils.wind2obj(data);
+            } else if (loadForecast(lat, lon)) {
+              var _data = getForecast(forecasts[getModel()][lat][lon]);
+
+              wind = _data && {
+                wind: _data.wind,
+                dir: _data.windDir
+              };
+            }
+
+            if (winds[lat]) {
+              delete winds[lat][lon];
+            }
+
+            if (!wind) {
+              var url = markers[lat][lon]._icon.src;
+              markers[lat][lon].setIcon(newIcon(url, map.getZoom()));
+            } else {
+              updateMarker(lat, lon, wind);
+            }
+          }
+        }
+      }
+    });
+  }
 
   function loadForecast(lat, lon) {
     var model = getModel();

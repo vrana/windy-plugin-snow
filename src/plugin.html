@@ -18,6 +18,14 @@ const winds = {};
 const forecasts = {};
 
 this.onopen = () => {
+	if (Object.keys(sites).length) {
+		for (const lat in markers) {
+			for (const lon in markers[lat]) {
+				markers[lat][lon].addTo(map);
+			}
+		}
+		return;
+	}
 	fetch('https://www.paragliding-mapa.cz/api/v0.1/launch').then(response => response.json()).then(launch => {
 		launchLoop: for (const site of launch.data) {
 			for (const lat in sites) {
@@ -44,34 +52,6 @@ this.onopen = () => {
 			}
 		}
 		
-		function redraw() {
-			interpolator(interpolate => {
-				for (const lat in markers) {
-					for (const lon in markers[lat]) {
-						if (map.getBounds().contains(L.latLng(lat, lon))) {
-							let wind;
-							if (store.get('overlay') == 'wind') {
-								const data = interpolate({lat, lon});
-								wind = data && utils.wind2obj(data);
-							} else if (loadForecast(lat, lon)) {
-								const data = getForecast(forecasts[getModel()][lat][lon]);
-								wind = data && {wind: data.wind, dir: data.windDir};
-							}
-							if (winds[lat]) {
-								delete winds[lat][lon];
-							}
-							if (!wind) {
-								const url = markers[lat][lon]._icon.src;
-								markers[lat][lon].setIcon(newIcon(url, map.getZoom()));
-							} else {
-								updateMarker(lat, lon, wind);
-							}
-						}
-					}
-				}
-			});
-		}
-		
 		redraw();
 		broadcast.on('redrawFinished', redraw);
 	});
@@ -84,6 +64,34 @@ this.onclose = () => {
 		}
 	}
 };
+
+function redraw() {
+	interpolator(interpolate => {
+		for (const lat in markers) {
+			for (const lon in markers[lat]) {
+				if (map.getBounds().contains(L.latLng(lat, lon))) {
+					let wind;
+					if (store.get('overlay') == 'wind') {
+						const data = interpolate({lat, lon});
+						wind = data && utils.wind2obj(data);
+					} else if (loadForecast(lat, lon)) {
+						const data = getForecast(forecasts[getModel()][lat][lon]);
+						wind = data && {wind: data.wind, dir: data.windDir};
+					}
+					if (winds[lat]) {
+						delete winds[lat][lon];
+					}
+					if (!wind) {
+						const url = markers[lat][lon]._icon.src;
+						markers[lat][lon].setIcon(newIcon(url, map.getZoom()));
+					} else {
+						updateMarker(lat, lon, wind);
+					}
+				}
+			}
+		}
+	});
+}
 
 function loadForecast(lat, lon) {
 	const model = getModel();
