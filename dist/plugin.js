@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -40,6 +40,7 @@ function () {
     key: 'vVGMVsbSz6cWtZsxMPQURL88LKFYpojx',
     plugin: 'windy-plugin-pg-mapa'
   });
+  var sites = {};
   var markers = {};
   var winds = {};
   var forecasts = {};
@@ -48,7 +49,6 @@ function () {
     fetch('https://www.paragliding-mapa.cz/api/v0.1/launch').then(function (response) {
       return response.json();
     }).then(function (launch) {
-      var sites = {};
       var _iteratorNormalCompletion = true;
       var _didIteratorError = false;
       var _iteratorError = undefined;
@@ -91,94 +91,19 @@ function () {
         }
       }
 
-      function getTooltip(sites) {
-        return function () {
-          var wind;
-          var forecast;
-          var tooltips = sites.map(function (site) {
-            wind = wind || winds[site.latitude] && winds[site.latitude][site.longitude];
-            forecast = forecast || forecasts[site.latitude] && forecasts[site.latitude][site.longitude];
-            return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> (' + site.superelevation + ' m)';
-          });
-          var extra = [];
-
-          if (wind) {
-            extra.push(wind);
-          }
-
-          if (forecast && !/FAKE/.test(forecast.header.note)) {
-            var path = store.get('path').replace(/\//g, '-');
-            var sunrise = new Date(forecast.header.sunrise).getHours();
-            var sunset = new Date(forecast.header.sunset).getHours();
-
-            for (var date in forecast.data) {
-              if (path.startsWith(date)) {
-                var _iteratorNormalCompletion2 = true;
-                var _didIteratorError2 = false;
-                var _iteratorError2 = undefined;
-
-                try {
-                  for (var _iterator2 = forecast.data[date][Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-                    var data = _step2.value;
-
-                    if (data.hour == path.replace(/.*-0?/, '')) {
-                      extra.push(data.rain ? '🌧 ' + data.mm + ' mm' : data.hour > sunrise && data.hour <= sunset ? '☀' : '☾');
-                      break;
-                    }
-                  }
-                } catch (err) {
-                  _didIteratorError2 = true;
-                  _iteratorError2 = err;
-                } finally {
-                  try {
-                    if (!_iteratorNormalCompletion2 && _iterator2["return"] != null) {
-                      _iterator2["return"]();
-                    }
-                  } finally {
-                    if (_didIteratorError2) {
-                      throw _iteratorError2;
-                    }
-                  }
-                }
-
-                break;
-              }
-            }
-          }
-
-          if (extra.length) {
-            tooltips.push(extra.join(' '));
-          }
-
-          return '<div style="min-width: 150px;">' + tooltips.join('<br>') + '</div>';
-        };
-      }
-
       var _loop = function _loop(lat) {
         var _loop2 = function _loop2(_lon) {
-          var tooltip = getTooltip(sites[lat][_lon]);
           var icon = newIcon(getIconUrl(sites[lat][_lon], null), map.getZoom());
           var marker = L.marker([lat, _lon], {
             icon: icon,
             riseOnHover: true
           }).addTo(map);
-          marker.bindPopup(tooltip);
+          marker.bindPopup(getTooltip(sites[lat][_lon]));
           marker.on('mouseover', function () {
             return marker.openPopup();
           });
           marker.on('popupopen', function () {
-            forecasts[lat] = forecasts[lat] || {};
-
-            if (!forecasts[lat][_lon]) {
-              loadData('forecast', {
-                model: store.get('product') == 'gfs' ? 'gfs' : 'ecmwf',
-                lat: +lat,
-                lon: +_lon
-              }).then(function (forecast) {
-                forecasts[lat][_lon] = forecast.data;
-                marker.setPopupContent(tooltip());
-              });
-            }
+            return loadForecast(lat, _lon);
           });
           markers[lat] = markers[lat] || {};
           markers[lat][_lon] = marker;
@@ -198,25 +123,33 @@ function () {
           for (var _lat in markers) {
             for (var lon in markers[_lat]) {
               if (map.getBounds().contains(L.latLng(_lat, lon))) {
-                if (store.get('overlay') != 'wind') {
-                  var url = markers[_lat][lon]._icon.src;
+                var wind = void 0;
 
-                  markers[_lat][lon].setIcon(newIcon(url, map.getZoom()));
-                } else {
+                if (store.get('overlay') == 'wind') {
                   var data = interpolate({
                     lat: _lat,
                     lon: lon
                   });
-                  var wind = data ? utils.wind2obj(data) : null;
+                  wind = data ? utils.wind2obj(data) : null;
+                } else if (loadForecast(_lat, lon)) {
+                  var _data = getForecast(forecasts[getModel()][_lat][lon]);
 
-                  markers[_lat][lon].setIcon(newIcon(getIconUrl(sites[_lat][lon], wind), map.getZoom()));
+                  wind = {
+                    wind: _data.wind,
+                    dir: _data.windDir
+                  };
+                }
 
-                  winds[_lat] = winds[_lat] || {};
-                  winds[_lat][lon] = wind ? wind.dir + '° ' + wind.wind.toFixed(1) + ' m/s' : '';
+                if (winds[_lat]) {
+                  delete winds[_lat][lon];
+                }
 
-                  markers[_lat][lon].setOpacity(getColor(sites[_lat][lon], wind) != 'red' ? 1 : .4);
+                if (!wind) {
+                  var url = markers[_lat][lon]._icon.src;
 
-                  markers[_lat][lon].setPopupContent(getTooltip(sites[_lat][lon])());
+                  markers[_lat][lon].setIcon(newIcon(url, map.getZoom()));
+                } else {
+                  updateMarker(_lat, lon, wind);
                 }
               }
             }
@@ -236,6 +169,103 @@ function () {
       }
     }
   };
+
+  function loadForecast(lat, lon) {
+    var model = getModel();
+    forecasts[model] = forecasts[model] || {};
+    forecasts[model][lat] = forecasts[model][lat] || {};
+
+    if (forecasts[model][lat][lon]) {
+      return true;
+    }
+
+    loadData('forecast', {
+      model: model,
+      lat: +lat,
+      lon: +lon
+    }).then(function (forecast) {
+      forecasts[model][lat][lon] = forecast.data;
+      var data = getForecast(forecast.data);
+      updateMarker(lat, lon, {
+        wind: data.wind,
+        dir: data.windDir
+      });
+    });
+  }
+
+  function updateMarker(lat, lon, wind) {
+    winds[lat] = winds[lat] || {};
+    winds[lat][lon] = winds[lat][lon] || wind;
+    markers[lat][lon].setIcon(newIcon(getIconUrl(sites[lat][lon], wind), map.getZoom()));
+    markers[lat][lon].setOpacity(getColor(sites[lat][lon], wind) != 'red' ? 1 : .4);
+    markers[lat][lon].setPopupContent(getTooltip(sites[lat][lon]));
+  }
+
+  function getTooltip(sites) {
+    var wind;
+    var forecast;
+    var tooltips = sites.map(function (site) {
+      wind = wind || winds[site.latitude] && winds[site.latitude][site.longitude];
+      forecast = forecast || forecasts[getModel()] && forecasts[getModel()][site.latitude] && forecasts[getModel()][site.latitude][site.longitude];
+      return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> (' + site.superelevation + ' m)';
+    });
+    var extra = [];
+
+    if (wind) {
+      extra.push(wind.dir + '° ' + wind.wind.toFixed(1) + ' m/s');
+    }
+
+    if (forecast && !/FAKE/.test(forecast.header.note)) {
+      var sunrise = new Date(forecast.header.sunrise).getHours();
+      var sunset = new Date(forecast.header.sunset).getHours();
+      var data = getForecast(forecast);
+
+      if (data) {
+        extra.push(data.rain ? '🌧 ' + data.mm + ' mm' : data.hour > sunrise && data.hour <= sunset ? '☀' : '☾');
+      }
+    }
+
+    if (extra.length) {
+      tooltips.push(extra.join(' '));
+    }
+
+    return '<div style="min-width: 150px;">' + tooltips.join('<br>') + '</div>';
+  }
+
+  function getModel() {
+    return store.get('product') == 'gfs' ? 'gfs' : 'ecmwf';
+  }
+
+  function getForecast(forecast) {
+    var path = store.get('path').replace(/\//g, '-');
+    var day = forecast.data[path.replace(/-\d+$/, '')] || [];
+    var _iteratorNormalCompletion2 = true;
+    var _didIteratorError2 = false;
+    var _iteratorError2 = undefined;
+
+    try {
+      for (var _iterator2 = day[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+        var data = _step2.value;
+
+        if (data.hour >= path.replace(/.*-0?/, '')) {
+          return data;
+        }
+      }
+    } catch (err) {
+      _didIteratorError2 = true;
+      _iteratorError2 = err;
+    } finally {
+      try {
+        if (!_iteratorNormalCompletion2 && _iterator2["return"] != null) {
+          _iterator2["return"]();
+        }
+      } finally {
+        if (_didIteratorError2) {
+          throw _iteratorError2;
+        }
+      }
+    }
+  }
 
   function getColor(sites, wind) {
     if (!wind) {
