@@ -190,7 +190,11 @@ function isDirIn(dir, from, to, tolerance = 0) {
 function getIconUrl(sites, wind) {
 	let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38">\n';
 	for (const site of sites) {
-		svg += getCircleSlice(site.wind_usable_from - 90, site.wind_usable_to - 90, 38, getColor([site], wind)) + '\n';
+		const color = getColor([site], wind);
+		svg += (site.wind_usable_to - site.wind_usable_from >= 359
+			? '<circle cx="19" cy="19" r="18" fill="' + color + '"/>'
+			: getCircleSlice(site.wind_usable_from - 90, site.wind_usable_to - 90, 38, color)
+		) + '\n';
 	}
 	svg += '<circle cx="19" cy="19" r="18" stroke="white" stroke-width="2" fill-opacity="0"/>\n</svg>';
 	return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
@@ -211,7 +215,7 @@ function getCircleSlice(startAngle, endAngle, size, color) {
 	const y1 = Math.round(hSize + hSize * Math.sin(Math.PI * startAngle / 180));
 	const x2 = Math.round(hSize + hSize * Math.cos(Math.PI * endAngle / 180));
 	const y2 = Math.round(hSize + hSize * Math.sin(Math.PI * endAngle / 180));
-	return "<path d='M" + hSize + "," + hSize + " L" + x1 + "," + y1 + " A" + hSize + "," + hSize + " 0 0,1 " + x2 + "," + y2 + " z' fill='" + color + "'/>";
+	return "<path d='M" + hSize + "," + hSize + " L" + x1 + "," + y1 + " A" + hSize + "," + hSize + " 0 0,1 " + x2 + "," + y2 + " Z' fill='" + color + "'/>";
 }
 
 function html(s) {

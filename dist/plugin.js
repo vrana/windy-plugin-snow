@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -345,7 +345,8 @@ function () {
     try {
       for (var _iterator4 = sites[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
         var site = _step4.value;
-        svg += getCircleSlice(site.wind_usable_from - 90, site.wind_usable_to - 90, 38, getColor([site], wind)) + '\n';
+        var color = getColor([site], wind);
+        svg += (site.wind_usable_to - site.wind_usable_from >= 359 ? '<circle cx="19" cy="19" r="18" fill="' + color + '"/>' : getCircleSlice(site.wind_usable_from - 90, site.wind_usable_to - 90, 38, color)) + '\n';
       }
     } catch (err) {
       _didIteratorError4 = true;
@@ -381,7 +382,7 @@ function () {
     var y1 = Math.round(hSize + hSize * Math.sin(Math.PI * startAngle / 180));
     var x2 = Math.round(hSize + hSize * Math.cos(Math.PI * endAngle / 180));
     var y2 = Math.round(hSize + hSize * Math.sin(Math.PI * endAngle / 180));
-    return "<path d='M" + hSize + "," + hSize + " L" + x1 + "," + y1 + " A" + hSize + "," + hSize + " 0 0,1 " + x2 + "," + y2 + " z' fill='" + color + "'/>";
+    return "<path d='M" + hSize + "," + hSize + " L" + x1 + "," + y1 + " A" + hSize + "," + hSize + " 0 0,1 " + x2 + "," + y2 + " Z' fill='" + color + "'/>";
   }
 
   function html(s) {
