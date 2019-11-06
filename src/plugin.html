@@ -150,11 +150,14 @@ function getModel() {
 function getForecast(forecast) {
 	const path = store.get('path').replace(/\//g, '-');
 	const day = forecast.data[path.replace(/-\d+$/, '')] || [];
+	let last;
 	for (const data of day) {
-		if (data.hour >= path.replace(/.*-0?/, '')) {
-			return data;
+		if (data.hour > path.replace(/.*-0?/, '')) {
+			break;
 		}
+		last = data;
 	}
+	return last;
 }
 
 function getColor(sites, wind) {

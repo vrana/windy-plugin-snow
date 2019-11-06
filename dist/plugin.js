@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -250,6 +250,7 @@ function () {
   function getForecast(forecast) {
     var path = store.get('path').replace(/\//g, '-');
     var day = forecast.data[path.replace(/-\d+$/, '')] || [];
+    var last;
     var _iteratorNormalCompletion2 = true;
     var _didIteratorError2 = false;
     var _iteratorError2 = undefined;
@@ -258,9 +259,11 @@ function () {
       for (var _iterator2 = day[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
         var data = _step2.value;
 
-        if (data.hour >= path.replace(/.*-0?/, '')) {
-          return data;
+        if (data.hour > path.replace(/.*-0?/, '')) {
+          break;
         }
+
+        last = data;
       }
     } catch (err) {
       _didIteratorError2 = true;
@@ -276,6 +279,8 @@ function () {
         }
       }
     }
+
+    return last;
   }
 
   function getColor(sites, wind) {
