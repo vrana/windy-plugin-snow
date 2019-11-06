@@ -47,11 +47,13 @@ this.onopen = () => {
 				}
 				if (forecast && !/FAKE/.test(forecast.header.note)) {
 					const path = store.get('path').replace(/\//g, '-');
+					const sunrise = new Date(forecast.header.sunrise).getHours();
+					const sunset = new Date(forecast.header.sunset).getHours();
 					for (const date in forecast.data) {
 						if (path.startsWith(date)) {
 							for (const data of forecast.data[date]) {
 								if (data.hour == path.replace(/.*-0?/, '')) {
-									extra.push(data.rain ? '🌧 ' + data.mm + ' mm' : '☀');
+									extra.push(data.rain ? '🌧 ' + data.mm + ' mm' : (data.hour > sunrise && data.hour <= sunset ? '☀' : '☾'));
 									break;
 								}
 							}
@@ -74,9 +76,9 @@ this.onopen = () => {
 				marker.bindPopup(tooltip);
 				marker.on('mouseover', () => marker.openPopup());
 				marker.on('popupopen', () => {
-					if (!forecasts[lat] || !forecasts[lat][lon]) {
+					forecasts[lat] = forecasts[lat] || {};
+					if (!forecasts[lat][lon]) {
 						loadData('forecast', {model: store.get('product') == 'gfs' ? 'gfs' : 'ecmwf', lat: +lat, lon: +lon}).then(forecast => {
-							forecasts[lat] = forecasts[lat] || {};
 							forecasts[lat][lon] = forecast.data;
 							marker.setPopupContent(tooltip());
 						});

@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "0.2.2",
+  "version": "0.2.4",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -108,6 +108,8 @@ function () {
 
           if (forecast && !/FAKE/.test(forecast.header.note)) {
             var path = store.get('path').replace(/\//g, '-');
+            var sunrise = new Date(forecast.header.sunrise).getHours();
+            var sunset = new Date(forecast.header.sunset).getHours();
 
             for (var date in forecast.data) {
               if (path.startsWith(date)) {
@@ -120,7 +122,7 @@ function () {
                     var data = _step2.value;
 
                     if (data.hour == path.replace(/.*-0?/, '')) {
-                      extra.push(data.rain ? '🌧 ' + data.mm + ' mm' : '☀');
+                      extra.push(data.rain ? '🌧 ' + data.mm + ' mm' : data.hour > sunrise && data.hour <= sunset ? '☀' : '☾');
                       break;
                     }
                   }
@@ -165,13 +167,14 @@ function () {
             return marker.openPopup();
           });
           marker.on('popupopen', function () {
-            if (!forecasts[lat] || !forecasts[lat][_lon]) {
+            forecasts[lat] = forecasts[lat] || {};
+
+            if (!forecasts[lat][_lon]) {
               loadData('forecast', {
                 model: store.get('product') == 'gfs' ? 'gfs' : 'ecmwf',
                 lat: +lat,
                 lon: +_lon
               }).then(function (forecast) {
-                forecasts[lat] = forecasts[lat] || {};
                 forecasts[lat][_lon] = forecast.data;
                 marker.setPopupContent(tooltip());
               });
