@@ -213,6 +213,7 @@ function () {
         dir: data.windDir
       });
     });
+    return false;
   }
 
   function updateMarker(latLon, wind) {

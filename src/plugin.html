@@ -65,7 +65,7 @@ this.onopen = () => {
 			const marker = L.marker(getLatLon(latLon), {icon, riseOnHover: true}).addTo(map);
 			// Leaflet supports binding function but that function is called only the first time the popup is opened.
 			marker.bindPopup(getTooltip(sites[latLon]));
-			// Leaflet tooltips close when you hover the tooltip and they work poorly on mobile.
+			// Leaflet tooltips close when you hover the tooltip and they work poorly on mobile. Use popup instead.
 			marker.on('mouseover', () => marker.openPopup());
 			marker.on('popupopen', () => loadForecast(latLon));
 			markers[latLon] = marker;
@@ -125,6 +125,7 @@ function loadForecast(latLon) {
 		// After loading the forecast, update the tooltip and possibly also the icon.
 		updateMarker(latLon, data && {wind: data.wind, dir: data.windDir});
 	});
+	return false;
 }
 
 /** Sets color, opacity and tooltip of a marker.
@@ -147,6 +148,7 @@ function getTooltip(sites) {
 	let wind;
 	let forecast;
 	const tooltips = sites.map(site => {
+		// Site latLon might be slightly different from wind latLon due to an utils.isNear call. However one will eventually match.
 		wind = wind || (winds[site.latitude + ' ' + site.longitude]);
 		forecast = forecast || (forecasts[getModel()] && forecasts[getModel()][site.latitude + ' ' + site.longitude]);
 		return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> (' + site.superelevation + ' m)<br>';
@@ -262,8 +264,8 @@ function newIcon(url, zoom) {
 }
 
 /** Gets SVG path for circle slice.
- * @param {number} startAngle Range <0, 360).
- * @param {number} endAngle Range <0, 360>.
+ * @param {number} startAngle
+ * @param {number} endAngle
  * @param {number} size
  * @param {string} color
  * @return {string}
