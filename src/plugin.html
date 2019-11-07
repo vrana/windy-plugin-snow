@@ -12,9 +12,31 @@ const loadData = pluginDataLoader({
 	plugin: 'windy-plugin-pg-mapa',
 });
 
+/** @type {Object<string, Array<{
+ *   latitude: number,
+ *   longitude: number,
+ *   name: string,
+ *   url: string,
+ *   superelevation: number,
+ *   wind_usable_from: number,
+ *   wind_usable_to: number,
+ * }>>} key: latLon */
 const sites = {};
+/** @type {Object<string, L.marker>} key: latLon */
 const markers = {};
+/** @type {Object<string, {wind: number, dir: number}>} key: latLon */
 const winds = {};
+/** @type {Object<string, Object<string, {
+ *   header: {note: string, sunrise: number, sunset: number},
+ *   data: Object<string, Array<{
+ *     hour: number,
+ *     wind: number,
+ *     windDir: number,
+ *     icon2: number,
+ *     moonPhase: number,
+ *     mm: number,
+ *   }>>,
+ * }>>} key: model, key2: latLon, key in data: day */
 const forecasts = {};
 
 this.onopen = () => {
@@ -79,6 +101,10 @@ function redraw() {
 	});
 }
 
+/** Loads forecast if not already loaded.
+ * @param {string} latLon
+ * @return {boolean} True if forecast is already loaded.
+ */
 function loadForecast(latLon) {
 	const model = getModel();
 	forecasts[model] = forecasts[model] || {};
@@ -92,6 +118,10 @@ function loadForecast(latLon) {
 	});
 }
 
+/** Sets color, opacity and tooltip of a marker.
+ * @param {string} latLon
+ * @param {{wind: number, dir: number}} wind
+ */
 function updateMarker(latLon, wind) {
 	winds[latLon] = winds[latLon] || wind;
 	wind = winds[latLon];
@@ -100,6 +130,10 @@ function updateMarker(latLon, wind) {
 	markers[latLon].setPopupContent(getTooltip(sites[latLon]));
 }
 
+/** Gets tooltip with site names, wind info and forecast.
+ * @param {Array<{latitude: number, longitude: number, name: string, url: string, superelevation: number}>} sites
+ * @return {string} HTML.
+ */
 function getTooltip(sites) {
 	let wind;
 	let forecast;
@@ -124,14 +158,21 @@ function getTooltip(sites) {
 	return '<div style="min-width: 160px;">' + tooltips.join('') + extra.join(' ') + '</div>';
 }
 
+/** Gets model usable for forecast.
+ * @return {string}
+ */
 function getModel() {
 	return store.get('product') == 'gfs' ? 'gfs' : 'ecmwf';
 }
 
+/** Gets forecast for current time.
+ * @param {{data: Object<string, Array<Object>>}} forecast Loaded forecast.data.
+ * @return {?Object} Null if there's no forecast.
+ */
 function getForecast(forecast) {
 	const path = store.get('path').replace(/\//g, '-');
 	const day = forecast.data[path.replace(/-\d+$/, '')] || [];
-	let last;
+	let last = null;
 	for (const data of day) {
 		if (data.hour > path.replace(/.*-0?/, '')) {
 			break;
@@ -141,6 +182,29 @@ function getForecast(forecast) {
 	return last;
 }
 
+/** Gets URL with SVG image.
+ * @param {Array<{wind_usable_from: number, wind_usable_to: number}>} sites
+ * @param {{wind: number, dir: number}} wind
+ * @return {string}
+ */
+function getIconUrl(sites, wind) {
+	let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38">\n';
+	for (const site of sites) {
+		const color = getColor([site], wind);
+		svg += (site.wind_usable_to - site.wind_usable_from >= 359
+			? '<circle cx="19" cy="19" r="18" fill="' + color + '"/>'
+			: getCircleSlice(site.wind_usable_from - 90, site.wind_usable_to - 90, 38, color)
+		) + '\n';
+	}
+	svg += '<circle cx="19" cy="19" r="18" stroke="white" stroke-width="2" fill-opacity="0"/>\n</svg>';
+	return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+
+/** Gets color for wind.
+ * @param {Array<{wind_usable_from: number, wind_usable_to: number}>} sites
+ * @param {{wind: number, dir: number}} wind
+ * @return {string}
+ */
 function getColor(sites, wind) {
 	if (!wind) {
 		return 'white';
@@ -163,24 +227,23 @@ function getColor(sites, wind) {
 	return color;
 }
 
+/** Checks whether dir is between from and to with tolerance.
+ * @param {number} dir Range <0, 360).
+ * @param {number} from Range <0, 360).
+ * @param {number} to Range <0, 360>.
+ * @param {number} tolerance Range <0, 360).
+ * @return {boolean}
+ */
 function isDirIn(dir, from, to, tolerance = 0) {
 	to += (to < from ? 360 : 0);
 	return (dir >= from - tolerance && dir <= to + tolerance) || dir <= to + tolerance - 360 || dir >= from - tolerance + 360;
 }
 
-function getIconUrl(sites, wind) {
-	let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38">\n';
-	for (const site of sites) {
-		const color = getColor([site], wind);
-		svg += (site.wind_usable_to - site.wind_usable_from >= 359
-			? '<circle cx="19" cy="19" r="18" fill="' + color + '"/>'
-			: getCircleSlice(site.wind_usable_from - 90, site.wind_usable_to - 90, 38, color)
-		) + '\n';
-	}
-	svg += '<circle cx="19" cy="19" r="18" stroke="white" stroke-width="2" fill-opacity="0"/>\n</svg>';
-	return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
-}
-
+/** Creates new icon.
+ * @param {string} url
+ * @param {number} zoom
+ * @return {L.icon}
+ */
 function newIcon(url, zoom) {
 	const size = zoom > 9 ? 38 : zoom > 6 ? 19 : zoom > 4 ? 9 : 5;
 	return L.icon({
@@ -190,6 +253,13 @@ function newIcon(url, zoom) {
 	});
 }
 
+/** Gets SVG path for circle slice.
+ * @param {number} startAngle Range <0, 360).
+ * @param {number} endAngle Range <0, 360>.
+ * @param {number} size
+ * @param {string} color
+ * @return {string}
+ */
 function getCircleSlice(startAngle, endAngle, size, color) {
 	const hSize = size / 2;
 	const x1 = Math.round(hSize + hSize * Math.cos(Math.PI * startAngle / 180));
@@ -199,13 +269,21 @@ function getCircleSlice(startAngle, endAngle, size, color) {
 	return "<path d='M" + hSize + "," + hSize + " L" + x1 + "," + y1 + " A" + hSize + "," + hSize + " 0 0,1 " + x2 + "," + y2 + " Z' fill='" + color + "'/>";
 }
 
+/** Gets {lat, lon} object.
+ * @param {string} Latitude and longitude separated with space.
+ * @return {{lat: number, lon: number}}
+ */
 function getLatLon(latLon) {
 	const parts = latLon.split(' ');
 	return {lat: +parts[0], lon: +parts[1]};
 }
 
-function html(s) {
-	return s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+/** Escapes special HTML characters.
+ * @param {string} text
+ * @return {string}
+ */
+function html(text) {
+	return text.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 }
 </script>
 </plugin>

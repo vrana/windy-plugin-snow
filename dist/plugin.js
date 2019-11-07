@@ -258,7 +258,7 @@ function () {
   function getForecast(forecast) {
     var path = store.get('path').replace(/\//g, '-');
     var day = forecast.data[path.replace(/-\d+$/, '')] || [];
-    var last;
+    var last = null;
     var _iteratorNormalCompletion4 = true;
     var _didIteratorError4 = false;
     var _iteratorError4 = undefined;
@@ -291,17 +291,8 @@ function () {
     return last;
   }
 
-  function getColor(sites, wind) {
-    if (!wind) {
-      return 'white';
-    }
-
-    if (wind.wind.toFixed(1) >= 8) {
-      return 'red';
-    }
-
-    var dir = wind.dir;
-    var color = 'red';
+  function getIconUrl(sites, wind) {
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38">\n';
     var _iteratorNormalCompletion5 = true;
     var _didIteratorError5 = false;
     var _iteratorError5 = undefined;
@@ -309,16 +300,8 @@ function () {
     try {
       for (var _iterator5 = sites[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
         var site = _step5.value;
-        var from = site.wind_usable_from;
-        var to = site.wind_usable_to;
-
-        if (isDirIn(dir, from, to)) {
-          return wind.wind.toFixed(1) >= 4 ? 'yellow' : 'lime';
-        }
-
-        if (isDirIn(dir, from, to, 10)) {
-          color = 'yellow';
-        }
+        var color = getColor([site], wind);
+        svg += (site.wind_usable_to - site.wind_usable_from >= 359 ? '<circle cx="19" cy="19" r="18" fill="' + color + '"/>' : getCircleSlice(site.wind_usable_from - 90, site.wind_usable_to - 90, 38, color)) + '\n';
       }
     } catch (err) {
       _didIteratorError5 = true;
@@ -335,17 +318,21 @@ function () {
       }
     }
 
-    return color;
+    svg += '<circle cx="19" cy="19" r="18" stroke="white" stroke-width="2" fill-opacity="0"/>\n</svg>';
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
   }
 
-  function isDirIn(dir, from, to) {
-    var tolerance = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
-    to += to < from ? 360 : 0;
-    return dir >= from - tolerance && dir <= to + tolerance || dir <= to + tolerance - 360 || dir >= from - tolerance + 360;
-  }
+  function getColor(sites, wind) {
+    if (!wind) {
+      return 'white';
+    }
 
-  function getIconUrl(sites, wind) {
-    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38">\n';
+    if (wind.wind.toFixed(1) >= 8) {
+      return 'red';
+    }
+
+    var dir = wind.dir;
+    var color = 'red';
     var _iteratorNormalCompletion6 = true;
     var _didIteratorError6 = false;
     var _iteratorError6 = undefined;
@@ -353,8 +340,16 @@ function () {
     try {
       for (var _iterator6 = sites[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
         var site = _step6.value;
-        var color = getColor([site], wind);
-        svg += (site.wind_usable_to - site.wind_usable_from >= 359 ? '<circle cx="19" cy="19" r="18" fill="' + color + '"/>' : getCircleSlice(site.wind_usable_from - 90, site.wind_usable_to - 90, 38, color)) + '\n';
+        var from = site.wind_usable_from;
+        var to = site.wind_usable_to;
+
+        if (isDirIn(dir, from, to)) {
+          return wind.wind.toFixed(1) >= 4 ? 'yellow' : 'lime';
+        }
+
+        if (isDirIn(dir, from, to, 10)) {
+          color = 'yellow';
+        }
       }
     } catch (err) {
       _didIteratorError6 = true;
@@ -371,8 +366,13 @@ function () {
       }
     }
 
-    svg += '<circle cx="19" cy="19" r="18" stroke="white" stroke-width="2" fill-opacity="0"/>\n</svg>';
-    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    return color;
+  }
+
+  function isDirIn(dir, from, to) {
+    var tolerance = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
+    to += to < from ? 360 : 0;
+    return dir >= from - tolerance && dir <= to + tolerance || dir <= to + tolerance - 360 || dir >= from - tolerance + 360;
   }
 
   function newIcon(url, zoom) {
@@ -401,7 +401,7 @@ function () {
     };
   }
 
-  function html(s) {
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  function html(text) {
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;');
   }
 });
