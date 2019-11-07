@@ -325,14 +325,10 @@ function () {
   function getColor(sites, wind) {
     if (!wind) {
       return 'white';
-    }
-
-    if (wind.wind.toFixed(1) >= 8) {
+    } else if (wind.wind.toFixed(1) >= 8) {
       return 'red';
     }
 
-    var dir = wind.dir;
-    var color = 'red';
     var _iteratorNormalCompletion6 = true;
     var _didIteratorError6 = false;
     var _iteratorError6 = undefined;
@@ -343,12 +339,10 @@ function () {
         var from = site.wind_usable_from;
         var to = site.wind_usable_to;
 
-        if (isDirIn(dir, from, to)) {
+        if (isDirIn(wind.dir, from, to)) {
           return wind.wind.toFixed(1) >= 4 ? 'yellow' : 'lime';
-        }
-
-        if (isDirIn(dir, from, to, 10)) {
-          color = 'yellow';
+        } else if (isDirIn(wind.dir, from, to, 10)) {
+          return 'yellow';
         }
       }
     } catch (err) {
@@ -366,7 +360,7 @@ function () {
       }
     }
 
-    return color;
+    return 'red';
   }
 
   function isDirIn(dir, from, to) {
