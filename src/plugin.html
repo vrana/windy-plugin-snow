@@ -18,38 +18,30 @@ const winds = {};
 const forecasts = {};
 
 this.onopen = () => {
-	if (Object.keys(sites).length) {
-		for (const lat in markers) {
-			for (const lon in markers[lat]) {
-				markers[lat][lon].addTo(map);
-			}
+	if (Object.keys(markers).length) {
+		for (const marker of markers) {
+			marker.addTo(map);
 		}
 		return;
 	}
 	fetch('https://www.paragliding-mapa.cz/api/v0.1/launch').then(response => response.json()).then(launch => {
 		launchLoop: for (const site of launch.data) {
-			for (const lat in sites) {
-				for (const lon in sites[lat]) {
-					if (utils.isNear({lat, lon}, {lat: site.latitude, lon: site.longitude})) {
-						sites[lat][lon].push(site);
-						continue launchLoop;
-					}
+			for (const latLon in sites) {
+				if (utils.isNear(getLatLon(latLon), {lat: site.latitude, lon: site.longitude})) {
+					sites[latLon].push(site);
+					continue launchLoop;
 				}
 			}
-			sites[site.latitude] = sites[site.latitude] || {};
-			sites[site.latitude][site.longitude] = [site];
+			sites[site.latitude + ' ' + site.longitude] = [site];
 		}
 		
-		for (const lat in sites) {
-			for (const lon in sites[lat]) {
-				const icon = newIcon(getIconUrl(sites[lat][lon], null), map.getZoom());
-				const marker = L.marker([lat, lon], {icon, riseOnHover: true}).addTo(map);
-				marker.bindPopup(getTooltip(sites[lat][lon]));
-				marker.on('mouseover', () => marker.openPopup());
-				marker.on('popupopen', () => loadForecast(lat, lon));
-				markers[lat] = markers[lat] || {};
-				markers[lat][lon] = marker;
-			}
+		for (const latLon in sites) {
+			const icon = newIcon(getIconUrl(sites[latLon], null), map.getZoom());
+			const marker = L.marker(getLatLon(latLon), {icon, riseOnHover: true}).addTo(map);
+			marker.bindPopup(getTooltip(sites[latLon]));
+			marker.on('mouseover', () => marker.openPopup());
+			marker.on('popupopen', () => loadForecast(latLon));
+			markers[latLon] = marker;
 		}
 		
 		redraw();
@@ -58,70 +50,62 @@ this.onopen = () => {
 };
 
 this.onclose = () => {
-	for (const lat in markers) {
-		for (const lon in markers[lat]) {
-			map.removeLayer(markers[lat][lon]);
-		}
+	for (const marker of markers) {
+		map.removeLayer(marker);
 	}
 };
 
 function redraw() {
 	interpolator(interpolate => {
-		for (const lat in markers) {
-			for (const lon in markers[lat]) {
-				if (map.getBounds().contains(L.latLng(lat, lon))) {
-					let wind;
-					if (store.get('overlay') == 'wind') {
-						const data = interpolate({lat, lon});
-						wind = data && utils.wind2obj(data);
-					} else if (loadForecast(lat, lon)) {
-						const data = getForecast(forecasts[getModel()][lat][lon]);
-						wind = data && {wind: data.wind, dir: data.windDir};
-					}
-					if (winds[lat]) {
-						delete winds[lat][lon];
-					}
-					if (!wind) {
-						const url = markers[lat][lon]._icon.src;
-						markers[lat][lon].setIcon(newIcon(url, map.getZoom()));
-					} else {
-						updateMarker(lat, lon, wind);
-					}
+		for (const latLon in markers) {
+			if (map.getBounds().contains(getLatLon(latLon))) {
+				let wind;
+				if (store.get('overlay') == 'wind') {
+					const data = interpolate(getLatLon(latLon));
+					wind = data && utils.wind2obj(data);
+				} else if (loadForecast(latLon)) {
+					const data = getForecast(forecasts[getModel()][latLon]);
+					wind = data && {wind: data.wind, dir: data.windDir};
+				}
+				delete winds[latLon];
+				if (!wind) {
+					const url = markers[latLon]._icon.src;
+					markers[latLon].setIcon(newIcon(url, map.getZoom()));
+				} else {
+					updateMarker(latLon, wind);
 				}
 			}
 		}
 	});
 }
 
-function loadForecast(lat, lon) {
+function loadForecast(latLon) {
 	const model = getModel();
 	forecasts[model] = forecasts[model] || {};
-	forecasts[model][lat] = forecasts[model][lat] || {};
-	if (forecasts[model][lat][lon]) {
+	if (forecasts[model][latLon]) {
 		return true;
 	}
-	loadData('forecast', {model, lat: +lat, lon: +lon}).then(forecast => {
-		forecasts[model][lat][lon] = forecast.data;
+	loadData('forecast', Object.assign({model}, getLatLon(latLon))).then(forecast => {
+		forecasts[model][latLon] = forecast.data;
 		const data = getForecast(forecast.data);
-		updateMarker(lat, lon, data && {wind: data.wind, dir: data.windDir});
+		updateMarker(latLon, data && {wind: data.wind, dir: data.windDir});
 	});
 }
 
-function updateMarker(lat, lon, wind) {
-	winds[lat] = winds[lat] || {};
-	winds[lat][lon] = winds[lat][lon] || wind;
-	wind = winds[lat][lon];
-	markers[lat][lon].setIcon(newIcon(getIconUrl(sites[lat][lon], wind), map.getZoom()));
-	markers[lat][lon].setOpacity(getColor(sites[lat][lon], wind) != 'red' ? 1 : .4);
-	markers[lat][lon].setPopupContent(getTooltip(sites[lat][lon]));
+function updateMarker(latLon, wind) {
+	winds[latLon] = winds[latLon] || wind;
+	wind = winds[latLon];
+	markers[latLon].setIcon(newIcon(getIconUrl(sites[latLon], wind), map.getZoom()));
+	markers[latLon].setOpacity(getColor(sites[latLon], wind) != 'red' ? 1 : .4);
+	markers[latLon].setPopupContent(getTooltip(sites[latLon]));
 }
 
 function getTooltip(sites) {
 	let wind;
 	let forecast;
 	const tooltips = sites.map(site => {
-		wind = wind || (winds[site.latitude] && winds[site.latitude][site.longitude]);
-		forecast = forecast || (forecasts[getModel()] && forecasts[getModel()][site.latitude] && forecasts[getModel()][site.latitude][site.longitude]);
+		wind = wind || (winds[site.latitude + ' ' + site.longitude]);
+		forecast = forecast || (forecasts[getModel()] && forecasts[getModel()][site.latitude + ' ' + site.longitude]);
 		return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> (' + site.superelevation + ' m)';
 	});
 	const extra = [];
@@ -216,6 +200,11 @@ function getCircleSlice(startAngle, endAngle, size, color) {
 	const x2 = Math.round(hSize + hSize * Math.cos(Math.PI * endAngle / 180));
 	const y2 = Math.round(hSize + hSize * Math.sin(Math.PI * endAngle / 180));
 	return "<path d='M" + hSize + "," + hSize + " L" + x1 + "," + y1 + " A" + hSize + "," + hSize + " 0 0,1 " + x2 + "," + y2 + " Z' fill='" + color + "'/>";
+}
+
+function getLatLon(latLon) {
+	const parts = latLon.split(' ');
+	return {lat: +parts[0], lon: +parts[1]};
 }
 
 function html(s) {

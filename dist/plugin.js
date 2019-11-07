@@ -46,45 +46,15 @@ function () {
   var forecasts = {};
 
   this.onopen = function () {
-    if (Object.keys(sites).length) {
-      for (var lat in markers) {
-        for (var lon in markers[lat]) {
-          markers[lat][lon].addTo(map);
-        }
-      }
-
-      return;
-    }
-
-    fetch('https://www.paragliding-mapa.cz/api/v0.1/launch').then(function (response) {
-      return response.json();
-    }).then(function (launch) {
+    if (Object.keys(markers).length) {
       var _iteratorNormalCompletion = true;
       var _didIteratorError = false;
       var _iteratorError = undefined;
 
       try {
-        launchLoop: for (var _iterator = launch.data[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-          var site = _step.value;
-
-          for (var _lat2 in sites) {
-            for (var _lon in sites[_lat2]) {
-              if (utils.isNear({
-                lat: _lat2,
-                lon: _lon
-              }, {
-                lat: site.latitude,
-                lon: site.longitude
-              })) {
-                sites[_lat2][_lon].push(site);
-
-                continue launchLoop;
-              }
-            }
-          }
-
-          sites[site.latitude] = sites[site.latitude] || {};
-          sites[site.latitude][site.longitude] = [site];
+        for (var _iterator = markers[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+          var marker = _step.value;
+          marker.addTo(map);
         }
       } catch (err) {
         _didIteratorError = true;
@@ -101,31 +71,66 @@ function () {
         }
       }
 
-      var _loop = function _loop(_lat) {
-        var _loop2 = function _loop2(_lon2) {
-          var icon = newIcon(getIconUrl(sites[_lat][_lon2], null), map.getZoom());
-          var marker = L.marker([_lat, _lon2], {
-            icon: icon,
-            riseOnHover: true
-          }).addTo(map);
-          marker.bindPopup(getTooltip(sites[_lat][_lon2]));
-          marker.on('mouseover', function () {
-            return marker.openPopup();
-          });
-          marker.on('popupopen', function () {
-            return loadForecast(_lat, _lon2);
-          });
-          markers[_lat] = markers[_lat] || {};
-          markers[_lat][_lon2] = marker;
-        };
+      return;
+    }
 
-        for (var _lon2 in sites[_lat]) {
-          _loop2(_lon2);
+    fetch('https://www.paragliding-mapa.cz/api/v0.1/launch').then(function (response) {
+      return response.json();
+    }).then(function (launch) {
+      var _iteratorNormalCompletion2 = true;
+      var _didIteratorError2 = false;
+      var _iteratorError2 = undefined;
+
+      try {
+        launchLoop: for (var _iterator2 = launch.data[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+          var site = _step2.value;
+
+          for (var _latLon in sites) {
+            if (utils.isNear(getLatLon(_latLon), {
+              lat: site.latitude,
+              lon: site.longitude
+            })) {
+              sites[_latLon].push(site);
+
+              continue launchLoop;
+            }
+          }
+
+          sites[site.latitude + ' ' + site.longitude] = [site];
         }
+      } catch (err) {
+        _didIteratorError2 = true;
+        _iteratorError2 = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion2 && _iterator2["return"] != null) {
+            _iterator2["return"]();
+          }
+        } finally {
+          if (_didIteratorError2) {
+            throw _iteratorError2;
+          }
+        }
+      }
+
+      var _loop = function _loop(latLon) {
+        var icon = newIcon(getIconUrl(sites[latLon], null), map.getZoom());
+        var marker = L.marker(getLatLon(latLon), {
+          icon: icon,
+          riseOnHover: true
+        }).addTo(map);
+        marker.bindPopup(getTooltip(sites[latLon]));
+        marker.on('mouseover', function () {
+          return marker.openPopup();
+        });
+        marker.on('popupopen', function () {
+          return loadForecast(latLon);
+        });
+        markers[latLon] = marker;
       };
 
-      for (var _lat in sites) {
-        _loop(_lat);
+      for (var latLon in sites) {
+        _loop(latLon);
       }
 
       redraw();
@@ -134,89 +139,96 @@ function () {
   };
 
   this.onclose = function () {
-    for (var lat in markers) {
-      for (var lon in markers[lat]) {
-        map.removeLayer(markers[lat][lon]);
+    var _iteratorNormalCompletion3 = true;
+    var _didIteratorError3 = false;
+    var _iteratorError3 = undefined;
+
+    try {
+      for (var _iterator3 = markers[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+        var marker = _step3.value;
+        map.removeLayer(marker);
+      }
+    } catch (err) {
+      _didIteratorError3 = true;
+      _iteratorError3 = err;
+    } finally {
+      try {
+        if (!_iteratorNormalCompletion3 && _iterator3["return"] != null) {
+          _iterator3["return"]();
+        }
+      } finally {
+        if (_didIteratorError3) {
+          throw _iteratorError3;
+        }
       }
     }
   };
 
   function redraw() {
     interpolator(function (interpolate) {
-      for (var lat in markers) {
-        for (var lon in markers[lat]) {
-          if (map.getBounds().contains(L.latLng(lat, lon))) {
-            var wind = void 0;
+      for (var latLon in markers) {
+        if (map.getBounds().contains(getLatLon(latLon))) {
+          var wind = void 0;
 
-            if (store.get('overlay') == 'wind') {
-              var data = interpolate({
-                lat: lat,
-                lon: lon
-              });
-              wind = data && utils.wind2obj(data);
-            } else if (loadForecast(lat, lon)) {
-              var _data = getForecast(forecasts[getModel()][lat][lon]);
+          if (store.get('overlay') == 'wind') {
+            var data = interpolate(getLatLon(latLon));
+            wind = data && utils.wind2obj(data);
+          } else if (loadForecast(latLon)) {
+            var _data = getForecast(forecasts[getModel()][latLon]);
 
-              wind = _data && {
-                wind: _data.wind,
-                dir: _data.windDir
-              };
-            }
+            wind = _data && {
+              wind: _data.wind,
+              dir: _data.windDir
+            };
+          }
 
-            if (winds[lat]) {
-              delete winds[lat][lon];
-            }
+          delete winds[latLon];
 
-            if (!wind) {
-              var url = markers[lat][lon]._icon.src;
-              markers[lat][lon].setIcon(newIcon(url, map.getZoom()));
-            } else {
-              updateMarker(lat, lon, wind);
-            }
+          if (!wind) {
+            var url = markers[latLon]._icon.src;
+            markers[latLon].setIcon(newIcon(url, map.getZoom()));
+          } else {
+            updateMarker(latLon, wind);
           }
         }
       }
     });
   }
 
-  function loadForecast(lat, lon) {
+  function loadForecast(latLon) {
     var model = getModel();
     forecasts[model] = forecasts[model] || {};
-    forecasts[model][lat] = forecasts[model][lat] || {};
 
-    if (forecasts[model][lat][lon]) {
+    if (forecasts[model][latLon]) {
       return true;
     }
 
-    loadData('forecast', {
-      model: model,
-      lat: +lat,
-      lon: +lon
-    }).then(function (forecast) {
-      forecasts[model][lat][lon] = forecast.data;
+    loadData('forecast', Object.assign({
+      model: model
+    }, getLatLon(latLon))).then(function (forecast) {
+      forecasts[model][latLon] = forecast.data;
       var data = getForecast(forecast.data);
-      updateMarker(lat, lon, data && {
+      updateMarker(latLon, data && {
         wind: data.wind,
         dir: data.windDir
       });
     });
   }
 
-  function updateMarker(lat, lon, wind) {
-    winds[lat] = winds[lat] || {};
-    winds[lat][lon] = winds[lat][lon] || wind;
-    wind = winds[lat][lon];
-    markers[lat][lon].setIcon(newIcon(getIconUrl(sites[lat][lon], wind), map.getZoom()));
-    markers[lat][lon].setOpacity(getColor(sites[lat][lon], wind) != 'red' ? 1 : .4);
-    markers[lat][lon].setPopupContent(getTooltip(sites[lat][lon]));
+  function updateMarker(latLon, wind) {
+    winds[latLon] = winds[latLon] || wind;
+    wind = winds[latLon];
+    markers[latLon].setIcon(newIcon(getIconUrl(sites[latLon], wind), map.getZoom()));
+    markers[latLon].setOpacity(getColor(sites[latLon], wind) != 'red' ? 1 : .4);
+    markers[latLon].setPopupContent(getTooltip(sites[latLon]));
   }
 
   function getTooltip(sites) {
     var wind;
     var forecast;
     var tooltips = sites.map(function (site) {
-      wind = wind || winds[site.latitude] && winds[site.latitude][site.longitude];
-      forecast = forecast || forecasts[getModel()] && forecasts[getModel()][site.latitude] && forecasts[getModel()][site.latitude][site.longitude];
+      wind = wind || winds[site.latitude + ' ' + site.longitude];
+      forecast = forecast || forecasts[getModel()] && forecasts[getModel()][site.latitude + ' ' + site.longitude];
       return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> (' + site.superelevation + ' m)';
     });
     var extra = [];
@@ -251,13 +263,13 @@ function () {
     var path = store.get('path').replace(/\//g, '-');
     var day = forecast.data[path.replace(/-\d+$/, '')] || [];
     var last;
-    var _iteratorNormalCompletion2 = true;
-    var _didIteratorError2 = false;
-    var _iteratorError2 = undefined;
+    var _iteratorNormalCompletion4 = true;
+    var _didIteratorError4 = false;
+    var _iteratorError4 = undefined;
 
     try {
-      for (var _iterator2 = day[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-        var data = _step2.value;
+      for (var _iterator4 = day[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+        var data = _step4.value;
 
         if (data.hour > path.replace(/.*-0?/, '')) {
           break;
@@ -266,16 +278,16 @@ function () {
         last = data;
       }
     } catch (err) {
-      _didIteratorError2 = true;
-      _iteratorError2 = err;
+      _didIteratorError4 = true;
+      _iteratorError4 = err;
     } finally {
       try {
-        if (!_iteratorNormalCompletion2 && _iterator2["return"] != null) {
-          _iterator2["return"]();
+        if (!_iteratorNormalCompletion4 && _iterator4["return"] != null) {
+          _iterator4["return"]();
         }
       } finally {
-        if (_didIteratorError2) {
-          throw _iteratorError2;
+        if (_didIteratorError4) {
+          throw _iteratorError4;
         }
       }
     }
@@ -294,13 +306,13 @@ function () {
 
     var dir = wind.dir;
     var color = 'red';
-    var _iteratorNormalCompletion3 = true;
-    var _didIteratorError3 = false;
-    var _iteratorError3 = undefined;
+    var _iteratorNormalCompletion5 = true;
+    var _didIteratorError5 = false;
+    var _iteratorError5 = undefined;
 
     try {
-      for (var _iterator3 = sites[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-        var site = _step3.value;
+      for (var _iterator5 = sites[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+        var site = _step5.value;
         var from = site.wind_usable_from;
         var to = site.wind_usable_to;
 
@@ -313,16 +325,16 @@ function () {
         }
       }
     } catch (err) {
-      _didIteratorError3 = true;
-      _iteratorError3 = err;
+      _didIteratorError5 = true;
+      _iteratorError5 = err;
     } finally {
       try {
-        if (!_iteratorNormalCompletion3 && _iterator3["return"] != null) {
-          _iterator3["return"]();
+        if (!_iteratorNormalCompletion5 && _iterator5["return"] != null) {
+          _iterator5["return"]();
         }
       } finally {
-        if (_didIteratorError3) {
-          throw _iteratorError3;
+        if (_didIteratorError5) {
+          throw _iteratorError5;
         }
       }
     }
@@ -338,27 +350,27 @@ function () {
 
   function getIconUrl(sites, wind) {
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38">\n';
-    var _iteratorNormalCompletion4 = true;
-    var _didIteratorError4 = false;
-    var _iteratorError4 = undefined;
+    var _iteratorNormalCompletion6 = true;
+    var _didIteratorError6 = false;
+    var _iteratorError6 = undefined;
 
     try {
-      for (var _iterator4 = sites[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-        var site = _step4.value;
+      for (var _iterator6 = sites[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+        var site = _step6.value;
         var color = getColor([site], wind);
         svg += (site.wind_usable_to - site.wind_usable_from >= 359 ? '<circle cx="19" cy="19" r="18" fill="' + color + '"/>' : getCircleSlice(site.wind_usable_from - 90, site.wind_usable_to - 90, 38, color)) + '\n';
       }
     } catch (err) {
-      _didIteratorError4 = true;
-      _iteratorError4 = err;
+      _didIteratorError6 = true;
+      _iteratorError6 = err;
     } finally {
       try {
-        if (!_iteratorNormalCompletion4 && _iterator4["return"] != null) {
-          _iterator4["return"]();
+        if (!_iteratorNormalCompletion6 && _iterator6["return"] != null) {
+          _iterator6["return"]();
         }
       } finally {
-        if (_didIteratorError4) {
-          throw _iteratorError4;
+        if (_didIteratorError6) {
+          throw _iteratorError6;
         }
       }
     }
@@ -383,6 +395,14 @@ function () {
     var x2 = Math.round(hSize + hSize * Math.cos(Math.PI * endAngle / 180));
     var y2 = Math.round(hSize + hSize * Math.sin(Math.PI * endAngle / 180));
     return "<path d='M" + hSize + "," + hSize + " L" + x1 + "," + y1 + " A" + hSize + "," + hSize + " 0 0,1 " + x2 + "," + y2 + " Z' fill='" + color + "'/>";
+  }
+
+  function getLatLon(latLon) {
+    var parts = latLon.split(' ');
+    return {
+      lat: +parts[0],
+      lon: +parts[1]
+    };
   }
 
   function html(s) {
