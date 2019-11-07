@@ -106,7 +106,7 @@ function getTooltip(sites) {
 	const tooltips = sites.map(site => {
 		wind = wind || (winds[site.latitude + ' ' + site.longitude]);
 		forecast = forecast || (forecasts[getModel()] && forecasts[getModel()][site.latitude + ' ' + site.longitude]);
-		return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> (' + site.superelevation + ' m)';
+		return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> (' + site.superelevation + ' m)<br>';
 	});
 	const extra = [];
 	if (wind) {
@@ -121,10 +121,7 @@ function getTooltip(sites) {
 			extra.push('<img src="img/icons4/png_25px/' + icon + '.png" style="height: 1.3em; vertical-align: middle;">' + (data.mm ? ' ' + data.mm + ' mm' : ''));
 		}
 	}
-	if (extra.length) {
-		tooltips.push(extra.join(' '));
-	}
-	return '<div style="min-width: 160px;">' + tooltips.join('<br>') + '</div>';
+	return '<div style="min-width: 160px;">' + tooltips.join('') + extra.join(' ') + '</div>';
 }
 
 function getModel() {

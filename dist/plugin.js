@@ -229,7 +229,7 @@ function () {
     var tooltips = sites.map(function (site) {
       wind = wind || winds[site.latitude + ' ' + site.longitude];
       forecast = forecast || forecasts[getModel()] && forecasts[getModel()][site.latitude + ' ' + site.longitude];
-      return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> (' + site.superelevation + ' m)';
+      return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> (' + site.superelevation + ' m)<br>';
     });
     var extra = [];
 
@@ -248,11 +248,7 @@ function () {
       }
     }
 
-    if (extra.length) {
-      tooltips.push(extra.join(' '));
-    }
-
-    return '<div style="min-width: 160px;">' + tooltips.join('<br>') + '</div>';
+    return '<div style="min-width: 160px;">' + tooltips.join('') + extra.join(' ') + '</div>';
   }
 
   function getModel() {
