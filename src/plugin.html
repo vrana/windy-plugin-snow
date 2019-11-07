@@ -64,7 +64,7 @@ this.onopen = () => {
 			const icon = newIcon(getIconUrl(sites[latLon], null), map.getZoom());
 			const marker = L.marker(getLatLon(latLon), {icon, riseOnHover: true}).addTo(map);
 			// Leaflet supports binding function but that function is called only the first time the popup is opened.
-			marker.bindPopup(getTooltip(sites[latLon]));
+			marker.bindPopup(getTooltip(sites[latLon]), {minWidth: 160});
 			// Leaflet tooltips close when you hover the tooltip and they work poorly on mobile. Use popup instead.
 			marker.on('mouseover', () => marker.openPopup());
 			marker.on('popupopen', () => loadForecast(latLon));
@@ -167,7 +167,7 @@ function getTooltip(sites) {
 			extra.push('<img src="img/icons4/png_25px/' + icon + '.png" style="height: 1.3em; vertical-align: middle;">' + (data.mm ? ' ' + data.mm + ' mm' : ''));
 		}
 	}
-	return '<div style="min-width: 160px;">' + tooltips.join('') + extra.join(' ') + '</div>';
+	return tooltips.join('') + extra.join(' ');
 }
 
 /** Gets model usable for forecast.

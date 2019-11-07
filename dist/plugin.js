@@ -119,7 +119,9 @@ function () {
           icon: icon,
           riseOnHover: true
         }).addTo(map);
-        marker.bindPopup(getTooltip(sites[latLon]));
+        marker.bindPopup(getTooltip(sites[latLon]), {
+          minWidth: 160
+        });
         marker.on('mouseover', function () {
           return marker.openPopup();
         });
@@ -249,7 +251,7 @@ function () {
       }
     }
 
-    return '<div style="min-width: 160px;">' + tooltips.join('') + extra.join(' ') + '</div>';
+    return tooltips.join('') + extra.join(' ');
   }
 
   function getModel() {
