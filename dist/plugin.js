@@ -43,6 +43,7 @@ function () {
   var sites = {};
   var markers = {};
   var winds = {};
+  var Forecast;
   var forecasts = {};
 
   this.onopen = function () {

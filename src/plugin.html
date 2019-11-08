@@ -26,16 +26,18 @@ const sites = {};
 const markers = {};
 /** @type {Object<string, {wind: number, dir: number}>} key: latLon */
 const winds = {};
+/** @typedef {{
+ *   hour: number,
+ *   wind: number,
+ *   windDir: number,
+ *   icon2: number,
+ *   moonPhase: number,
+ *   mm: number,
+ * }} */
+let Forecast;
 /** @type {Object<string, Object<string, {
  *   header: {note: string, sunrise: number, sunset: number},
- *   data: Object<string, Array<{
- *     hour: number,
- *     wind: number,
- *     windDir: number,
- *     icon2: number,
- *     moonPhase: number,
- *     mm: number,
- *   }>>,
+ *   data: Object<string, Array<Forecast>>,
  * }>>} key: model, key2: latLon, key in data: day */
 const forecasts = {};
 
@@ -178,8 +180,8 @@ function getModel() {
 }
 
 /** Gets forecast for current time.
- * @param {{data: Object<string, Array<Object>>}} forecast Loaded forecast.data.
- * @return {?Object} Null if there's no forecast.
+ * @param {{data: Object<string, Array<Forecast>>}} forecast Loaded forecast.data.
+ * @return {?Forecast} Null if there's no forecast.
  */
 function getForecast(forecast) {
 	// The format of 'path' is year/month/day/hour.
