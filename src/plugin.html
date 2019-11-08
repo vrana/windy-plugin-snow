@@ -132,7 +132,7 @@ function loadForecast(latLon) {
  * @param {{wind: number, dir: number}} wind
  */
 function updateMarker(latLon, wind) {
-	winds[latLon] = winds[latLon] || wind;
+	winds[latLon] = winds[latLon] || wind; // If we already have wind from interpolator then keep it.
 	wind = winds[latLon];
 	markers[latLon].setIcon(newIcon(getIconUrl(sites[latLon], wind), map.getZoom()));
 	markers[latLon].setOpacity(getColor(sites[latLon], wind) != 'red' ? 1 : .4);
@@ -208,7 +208,7 @@ function getIconUrl(sites, wind) {
 			: getCircleSlice(site.wind_usable_from - 90, site.wind_usable_to - 90, 38, color)
 		) + '\n';
 	}
-	svg += '<circle cx="19" cy="19" r="18" stroke="white" stroke-width="2" fill-opacity="0"/>\n</svg>';
+	svg += '<circle cx="19" cy="19" r="18" stroke="#555" stroke-width="2" fill-opacity="0"/>\n</svg>';
 	return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
 }
 

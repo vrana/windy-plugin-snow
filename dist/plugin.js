@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -318,7 +318,7 @@ function () {
       }
     }
 
-    svg += '<circle cx="19" cy="19" r="18" stroke="white" stroke-width="2" fill-opacity="0"/>\n</svg>';
+    svg += '<circle cx="19" cy="19" r="18" stroke="#555" stroke-width="2" fill-opacity="0"/>\n</svg>';
     return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
   }
 
