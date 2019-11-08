@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -384,11 +384,12 @@ function () {
 
   function getCircleSlice(startAngle, endAngle, size, color) {
     var hSize = size / 2;
-    var x1 = Math.round(hSize + hSize * Math.cos(Math.PI * startAngle / 180));
-    var y1 = Math.round(hSize + hSize * Math.sin(Math.PI * startAngle / 180));
-    var x2 = Math.round(hSize + hSize * Math.cos(Math.PI * endAngle / 180));
-    var y2 = Math.round(hSize + hSize * Math.sin(Math.PI * endAngle / 180));
-    return "<path d='M" + hSize + "," + hSize + " L" + x1 + "," + y1 + " A" + hSize + "," + hSize + " 0 0,1 " + x2 + "," + y2 + " Z' fill='" + color + "'/>";
+    var x1 = hSize + hSize * Math.cos(Math.PI * startAngle / 180);
+    var y1 = hSize + hSize * Math.sin(Math.PI * startAngle / 180);
+    var x2 = hSize + hSize * Math.cos(Math.PI * endAngle / 180);
+    var y2 = hSize + hSize * Math.sin(Math.PI * endAngle / 180);
+    var largeArc = (endAngle - startAngle + 360) % 360 > 180 ? 1 : 0;
+    return '<path d="M' + hSize + ',' + hSize + ' L' + x1 + ',' + y1 + ' A' + hSize + ',' + hSize + ' 0 ' + largeArc + ' 1 ' + x2 + ',' + y2 + ' Z" fill="' + color + '"/>';
   }
 
   function getLatLon(latLon) {
