@@ -318,7 +318,7 @@ function () {
       }
     }
 
-    svg += '<circle cx="19" cy="19" r="18" stroke="#555" stroke-width="2" fill-opacity="0"/>\n</svg>';
+    svg += '<circle cx="19" cy="19" r="18" stroke="#333" stroke-width="2" fill-opacity="0"/>\n</svg>';
     return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
   }
 
