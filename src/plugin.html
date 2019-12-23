@@ -150,14 +150,16 @@ function getTooltip(sites) {
 	let wind;
 	let forecast;
 	const tooltips = sites.map(site => {
-		// Site latLon might be slightly different from wind latLon due to an utils.isNear call. However one will eventually match.
+		// Site latLon might be slightly different from wind latLon due to a utils.isNear call. However one will eventually match.
 		wind = wind || (winds[site.latitude + ' ' + site.longitude]);
 		forecast = forecast || (forecasts[getModel()] && forecasts[getModel()][site.latitude + ' ' + site.longitude]);
 		return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> (' + site.superelevation + ' m)<br>';
 	});
 	const extra = [];
 	if (wind) {
-		extra.push('<span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '° ' + wind.wind.toFixed(1) + ' m/s');
+		const colors = ['green', 'orange', 'red'];
+		extra.push('<span style="color: ' + colors[getDirIndex(sites, wind.dir)] + ';"><span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '°</span>'
+			+ ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';">' + wind.wind.toFixed(1) + ' m/s</span>');
 	}
 	if (forecast && !/FAKE/.test(forecast.header.note)) {
 		const data = getForecast(forecast);
@@ -224,19 +226,41 @@ function getIconUrl(sites, wind) {
 function getColor(sites, wind) {
 	if (!wind) {
 		return 'white';
-	} else if (wind.wind.toFixed(1) >= 8) { // Round here to not have 7.99 displayed as 8 shown in yellow.
-		return 'red';
 	}
+	const colors = ['lime', 'yellow', 'red'];
+	return colors[Math.max(getSpeedIndex(wind.wind), getDirIndex(sites, wind.dir))];
+}
+
+/** Gets color index for wind speed.
+ * @param {number} speed
+ * @return {int} 0 good, 1 stronger, 2 too strong
+ */
+function getSpeedIndex(speed) {
+	if (speed.toFixed(1) >= 8) { // Round here to not have 7.99 displayed as 8 shown in yellow.
+		return 2;
+	} else if (speed.toFixed(1) >= 4) {
+		return 1;
+	}
+	return 0;
+}
+
+/** Gets color index for wind direction.
+ * @param {Array<{wind_usable_from: number, wind_usable_to: number}>} sites
+ * @param {number} dir
+ * @return {int} 0 good, 1 almost, 2 bad
+ */
+function getDirIndex(sites, dir) {
+	let result = 2;
 	for (const site of sites) {
 		const from = site.wind_usable_from;
 		const to = site.wind_usable_to;
-		if (isDirIn(wind.dir, from, to)) {
-			return wind.wind.toFixed(1) >= 4 ? 'yellow' : 'lime';
-		} else if (isDirIn(wind.dir, from, to, 10)) {
-			return 'yellow'; // At least one site needs to match to display the marker.
+		if (isDirIn(dir, from, to)) {
+			return 0;
+		} else if (isDirIn(dir, from, to, 10)) {
+			result = 1;
 		}
 	}
-	return 'red';
+	return result;
 }
 
 /** Checks whether dir is between from and to with tolerance.

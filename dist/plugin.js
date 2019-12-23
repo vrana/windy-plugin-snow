@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "0.4.4",
+  "version": "1.0.0",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -238,7 +238,8 @@ function () {
     var extra = [];
 
     if (wind) {
-      extra.push('<span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '° ' + wind.wind.toFixed(1) + ' m/s');
+      var colors = ['green', 'orange', 'red'];
+      extra.push('<span style="color: ' + colors[getDirIndex(sites, wind.dir)] + ';"><span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '°</span>' + ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';">' + wind.wind.toFixed(1) + ' m/s</span>');
     }
 
     if (forecast && !/FAKE/.test(forecast.header.note)) {
@@ -329,10 +330,24 @@ function () {
   function getColor(sites, wind) {
     if (!wind) {
       return 'white';
-    } else if (wind.wind.toFixed(1) >= 8) {
-      return 'red';
     }
 
+    var colors = ['lime', 'yellow', 'red'];
+    return colors[Math.max(getSpeedIndex(wind.wind), getDirIndex(sites, wind.dir))];
+  }
+
+  function getSpeedIndex(speed) {
+    if (speed.toFixed(1) >= 8) {
+      return 2;
+    } else if (speed.toFixed(1) >= 4) {
+      return 1;
+    }
+
+    return 0;
+  }
+
+  function getDirIndex(sites, dir) {
+    var result = 2;
     var _iteratorNormalCompletion6 = true;
     var _didIteratorError6 = false;
     var _iteratorError6 = undefined;
@@ -343,10 +358,10 @@ function () {
         var from = site.wind_usable_from;
         var to = site.wind_usable_to;
 
-        if (isDirIn(wind.dir, from, to)) {
-          return wind.wind.toFixed(1) >= 4 ? 'yellow' : 'lime';
-        } else if (isDirIn(wind.dir, from, to, 10)) {
-          return 'yellow';
+        if (isDirIn(dir, from, to)) {
+          return 0;
+        } else if (isDirIn(dir, from, to, 10)) {
+          result = 1;
         }
       }
     } catch (err) {
@@ -364,7 +379,7 @@ function () {
       }
     }
 
-    return 'red';
+    return result;
   }
 
   function isDirIn(dir, from, to) {
