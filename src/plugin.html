@@ -168,7 +168,8 @@ function getTooltip(sites) {
 			const sunrise = new Date(forecast.header.sunrise).getHours();
 			const sunset = new Date(forecast.header.sunset).getHours();
 			const icon = data.icon2 + (data.hour > sunrise && data.hour <= sunset ? '' : '_night_' + data.moonPhase);
-			extra.push('<img src="img/icons4/png_25px/' + icon + '.png" style="height: 1.3em; vertical-align: middle;">' + (data.mm ? ' ' + data.mm + ' mm' : ''));
+			const href = 'href=\'javascript:W.broadcast.fire("rqstOpen", "detail", {lat: ' + sites[0].latitude + ', lon: ' + sites[0].longitude + ', source: "plugin"});\'';
+			extra.push('<a ' + href + '><img src="img/icons4/png_25px/' + icon + '.png" style="height: 1.3em; vertical-align: middle;"></a>' + (data.mm ? ' ' + data.mm + ' mm' : ''));
 		}
 	}
 	return tooltips.join('') + extra.join(' ');

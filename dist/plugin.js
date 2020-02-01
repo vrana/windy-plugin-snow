@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -249,7 +249,8 @@ function () {
         var sunrise = new Date(forecast.header.sunrise).getHours();
         var sunset = new Date(forecast.header.sunset).getHours();
         var icon = data.icon2 + (data.hour > sunrise && data.hour <= sunset ? '' : '_night_' + data.moonPhase);
-        extra.push('<img src="img/icons4/png_25px/' + icon + '.png" style="height: 1.3em; vertical-align: middle;">' + (data.mm ? ' ' + data.mm + ' mm' : ''));
+        var href = 'href=\'javascript:W.broadcast.fire("rqstOpen", "detail", {lat: ' + sites[0].latitude + ', lon: ' + sites[0].longitude + ', source: "plugin"});\'';
+        extra.push('<a ' + href + '><img src="img/icons4/png_25px/' + icon + '.png" style="height: 1.3em; vertical-align: middle;"></a>' + (data.mm ? ' ' + data.mm + ' mm' : ''));
       }
     }
 
