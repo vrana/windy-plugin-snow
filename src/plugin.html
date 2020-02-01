@@ -24,11 +24,14 @@ const loadData = pluginDataLoader({
 const sites = {};
 /** @type {Object<string, L.marker>} key: latLon */
 const markers = {};
-/** @type {Object<string, {wind: number, dir: number}>} key: latLon */
+/** @typedef {{wind: number, dir: number, gust: number|undefined}} */
+let Wind;
+/** @type {Object<string, Wind>} key: latLon */
 const winds = {};
 /** @typedef {{
  *   hour: number,
  *   wind: number,
+ *   gust: number,
  *   windDir: number,
  *   icon2: number,
  *   moonPhase: number,
@@ -90,7 +93,7 @@ function redraw() {
 				} else if (loadForecast(latLon)) {
 					// If we already have the forecast loaded then use it, otherwise loadForecast will use it.
 					const data = getForecast(forecasts[getModel()][latLon]);
-					wind = data && {wind: data.wind, dir: data.windDir};
+					wind = data && {wind: data.wind, dir: data.windDir, gust: data.gust};
 				}
 				delete winds[latLon]; // After switching overlays or model, update the stored wind.
 				if (!wind) {
@@ -119,17 +122,18 @@ function loadForecast(latLon) {
 		forecasts[model][latLon] = forecast.data;
 		const data = getForecast(forecast.data);
 		// After loading the forecast, update the tooltip and possibly also the icon.
-		updateMarker(latLon, data && {wind: data.wind, dir: data.windDir});
+		updateMarker(latLon, data && {wind: data.wind, dir: data.windDir, gust: data.gust});
 	});
 	return false;
 }
 
 /** Sets color, opacity and tooltip of a marker.
  * @param {string} latLon
- * @param {{wind: number, dir: number}} wind
+ * @param {Wind} wind
  */
 function updateMarker(latLon, wind) {
 	winds[latLon] = winds[latLon] || wind; // If we already have wind from interpolator then keep it.
+	winds[latLon].gust = wind.gust;
 	wind = winds[latLon];
 	markers[latLon].setIcon(newIcon(getIconUrl(sites[latLon], wind), map.getZoom()));
 	markers[latLon].setOpacity(getColor(sites[latLon], wind) != 'red' ? 1 : .4);
@@ -153,7 +157,7 @@ function getTooltip(sites) {
 	if (wind) {
 		const colors = ['green', 'orange', 'red'];
 		extra.push('<span style="color: ' + colors[getDirIndex(sites, wind.dir)] + ';"><span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '°</span>'
-			+ ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';">' + wind.wind.toFixed(1) + ' m/s</span>');
+			+ ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';"' + (wind.gust != null ? ' title="gust: ' + wind.gust.toFixed(1) + ' m/s"' : '') + '>' + wind.wind.toFixed(1) + ' m/s</span>');
 	}
 	if (forecast && !/FAKE/.test(forecast.header.note)) {
 		const data = getForecast(forecast);
@@ -197,7 +201,7 @@ function getForecast(forecast) {
 
 /** Gets URL with SVG image.
  * @param {Array<{wind_usable_from: number, wind_usable_to: number}>} sites
- * @param {{wind: number, dir: number}} wind
+ * @param {Wind} wind
  * @return {string}
  */
 function getIconUrl(sites, wind) {
@@ -215,7 +219,7 @@ function getIconUrl(sites, wind) {
 
 /** Gets color for wind.
  * @param {Array<{wind_usable_from: number, wind_usable_to: number}>} sites
- * @param {{wind: number, dir: number}} wind
+ * @param {Wind} wind
  * @return {string}
  */
 function getColor(sites, wind) {

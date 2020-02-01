@@ -42,6 +42,7 @@ function () {
   });
   var sites = {};
   var markers = {};
+  var Wind;
   var winds = {};
   var Forecast;
   var forecasts = {};
@@ -155,7 +156,8 @@ function () {
 
             wind = _data && {
               wind: _data.wind,
-              dir: _data.windDir
+              dir: _data.windDir,
+              gust: _data.gust
             };
           }
 
@@ -187,7 +189,8 @@ function () {
       var data = getForecast(forecast.data);
       updateMarker(latLon, data && {
         wind: data.wind,
-        dir: data.windDir
+        dir: data.windDir,
+        gust: data.gust
       });
     });
     return false;
@@ -195,6 +198,7 @@ function () {
 
   function updateMarker(latLon, wind) {
     winds[latLon] = winds[latLon] || wind;
+    winds[latLon].gust = wind.gust;
     wind = winds[latLon];
     markers[latLon].setIcon(newIcon(getIconUrl(sites[latLon], wind), map.getZoom()));
     markers[latLon].setOpacity(getColor(sites[latLon], wind) != 'red' ? 1 : .4);
@@ -213,7 +217,7 @@ function () {
 
     if (wind) {
       var colors = ['green', 'orange', 'red'];
-      extra.push('<span style="color: ' + colors[getDirIndex(sites, wind.dir)] + ';"><span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '°</span>' + ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';">' + wind.wind.toFixed(1) + ' m/s</span>');
+      extra.push('<span style="color: ' + colors[getDirIndex(sites, wind.dir)] + ';"><span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '°</span>' + ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';"' + (wind.gust != null ? ' title="gust: ' + wind.gust.toFixed(1) + ' m/s"' : '') + '>' + wind.wind.toFixed(1) + ' m/s</span>');
     }
 
     if (forecast && !/FAKE/.test(forecast.header.note)) {
