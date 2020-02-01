@@ -207,7 +207,7 @@ function () {
     var tooltips = sites.map(function (site) {
       wind = wind || winds[site.latitude + ' ' + site.longitude];
       forecast = forecast || forecasts[getModel()] && forecasts[getModel()][site.latitude + ' ' + site.longitude];
-      return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> (' + site.superelevation + ' m)<br>';
+      return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> ' + site.altitude + ' mnm (' + site.superelevation + ' m)<br>';
     });
     var extra = [];
 

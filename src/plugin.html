@@ -147,7 +147,7 @@ function getTooltip(sites) {
 		// Site latLon might be slightly different from wind latLon due to a utils.isNear call. However one will eventually match.
 		wind = wind || (winds[site.latitude + ' ' + site.longitude]);
 		forecast = forecast || (forecasts[getModel()] && forecasts[getModel()][site.latitude + ' ' + site.longitude]);
-		return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> (' + site.superelevation + ' m)<br>';
+		return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> ' + site.altitude + ' mnm (' + site.superelevation + ' m)<br>';
 	});
 	const extra = [];
 	if (wind) {
