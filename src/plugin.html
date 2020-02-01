@@ -78,12 +78,6 @@ this.onopen = () => {
 	});
 };
 
-this.onclose = () => {
-	for (const marker of markers) {
-		map.removeLayer(marker);
-	}
-};
-
 function redraw() {
 	interpolator(interpolate => {
 		for (const latLon in markers) {
