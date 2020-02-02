@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -46,6 +46,8 @@ function () {
   var winds = {};
   var Forecast;
   var forecasts = {};
+  var AirData;
+  var airDatas = {};
 
   this.onopen = function () {
     if (Object.keys(markers).length) {
@@ -104,7 +106,18 @@ function () {
           return marker.openPopup();
         });
         marker.on('popupopen', function () {
-          return loadForecast(latLon);
+          loadForecast(latLon);
+          var model = getModel();
+          airDatas[model] = airDatas[model] || {};
+
+          if (!airDatas[model][latLon]) {
+            loadData('airData', Object.assign({
+              model: model
+            }, getLatLon(latLon))).then(function (airData) {
+              airDatas[model][latLon] = airData.data;
+              markers[latLon].setPopupContent(getTooltip(sites[latLon]));
+            });
+          }
         });
         markers[latLon] = marker;
       };
@@ -117,6 +130,60 @@ function () {
       broadcast.on('redrawFinished', redraw);
     });
   };
+
+  function computeCeiling(airData) {
+    var header = airData.header,
+        data = airData.data;
+    var now = new Date(store.get('path').replace(/\//g, '-').replace(/-(\d+)$/, 'T$1:00Z')).getTime();
+    var hour = 0;
+
+    for (var key in data.hours) {
+      if (data.hours[key] > now) {
+        break;
+      }
+
+      hour = key;
+    }
+
+    var elevation = header.modelElevation || header.elevation;
+    var dryAdiabatTemp = data['temp-surface'][hour];
+    var cloudBase = elevation + (dryAdiabatTemp - data['dewpoint-surface'][hour]) * 122;
+    var layers = {
+      temp: {},
+      gh: {}
+    };
+
+    for (var _key in data) {
+      var match = /^(temp|gh)-(\d+)h$/.exec(_key);
+
+      if (match) {
+        layers[match[1]][match[2]] = data[_key][hour];
+      }
+    }
+
+    var ceiling = elevation;
+    var prevTemp = dryAdiabatTemp;
+    Object.keys(layers.temp).sort(function (a, b) {
+      return b - a;
+    }).some(function (pressure) {
+      var gh = layers.gh[pressure];
+
+      if (gh > ceiling) {
+        var temp = layers.temp[pressure];
+        var height = gh - ceiling;
+
+        if (temp > dryAdiabatTemp - height * .01) {
+          ceiling += (dryAdiabatTemp - prevTemp) / ((temp - prevTemp) / height + .01);
+          return true;
+        }
+
+        dryAdiabatTemp -= height * .01;
+        ceiling = gh;
+        prevTemp = temp;
+      }
+    });
+    return Math.min(ceiling, cloudBase);
+  }
 
   function redraw() {
     interpolator(function (interpolate) {
@@ -182,10 +249,14 @@ function () {
   function getTooltip(sites) {
     var wind;
     var forecast;
+    var airData;
+    var model = getModel();
     var tooltips = sites.map(function (site) {
-      wind = wind || winds[site.latitude + ' ' + site.longitude];
-      forecast = forecast || forecasts[getModel()] && forecasts[getModel()][site.latitude + ' ' + site.longitude];
-      return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> ' + site.altitude + ' mnm (' + site.superelevation + ' m)<br>';
+      var latLon = site.latitude + ' ' + site.longitude;
+      wind = wind || winds[latLon];
+      forecast = forecast || forecasts[model] && forecasts[model][latLon];
+      airData = airData || airDatas[model] && airDatas[model][latLon];
+      return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> ' + site.altitude + ' mnm (' + site.superelevation + ' m)';
     });
     var extra = [];
 
@@ -206,7 +277,12 @@ function () {
       }
     }
 
-    return tooltips.join('') + extra.join(' ');
+    tooltips.push(extra.join(' '));
+    var p = sites[0].latitude + 'x' + sites[0].longitude;
+    var t = store.get('path').replace(/\//g, '-').replace(/-(\d+)$/, 'T$1:00:00Z');
+    var s = encodeURIComponent(sites[0].name);
+    tooltips.push('<span title="Nižší z průsečíků suché adiabaty s teplotou a izogramou">Dostupy</span>:' + ' <a href="http://www.xcmeteo.net/?p=' + p + ',t=' + t + ',s=' + s + '" target="_blank">' + (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-') + '</a>');
+    return tooltips.join('<br>');
   }
 
   function getModel() {

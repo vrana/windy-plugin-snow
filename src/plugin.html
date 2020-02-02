@@ -43,6 +43,17 @@ let Forecast;
  *   data: Object<string, Array<Forecast>>,
  * }>>} key: model, key2: latLon, key in data: day */
 const forecasts = {};
+/** @typedef {{header: {modelElevation: number, elevation: number}, data: {
+ *   hours: Array<number>,
+ *   dewpoint-surface: Array<number>,
+ *   temp-surface: Array<number>,
+ *   temp-1000h: Array<number>,
+ *   gh-1000h: Array<number>,
+ * }}}
+ */
+let AirData;
+/** @type {Object<string, Object<string, AirData>>} key: model, key2: latLon */
+const airDatas = {};
 
 this.onopen = () => {
 	if (Object.keys(markers).length) {
@@ -69,7 +80,18 @@ this.onopen = () => {
 			marker.bindPopup(getTooltip(sites[latLon]), {minWidth: 160});
 			// Leaflet tooltips close when you hover the tooltip and they work poorly on mobile. Use popup instead.
 			marker.on('mouseover', () => marker.openPopup());
-			marker.on('popupopen', () => loadForecast(latLon));
+			marker.on('popupopen', () => {
+				loadForecast(latLon);
+				const model = getModel();
+				airDatas[model] = airDatas[model] || {};
+				if (!airDatas[model][latLon]) {
+					loadData('airData', Object.assign({model}, getLatLon(latLon))).then(airData => {
+						// Cache: response has Expires: -1.
+						airDatas[model][latLon] = airData.data;
+						markers[latLon].setPopupContent(getTooltip(sites[latLon]));
+					});
+				}
+			});
 			markers[latLon] = marker;
 		}
 		
@@ -77,6 +99,56 @@ this.onopen = () => {
 		broadcast.on('redrawFinished', redraw);
 	});
 };
+
+/** Computes ceiling: min(dry abiabat crossing humidity, temperature crossing dry adiabat).
+ * @param {AirData} airData
+ * @return number Altitude in meters
+ */
+function computeCeiling(airData) {
+	const {header, data} = airData;
+	// The format of 'path' is YYYY/MM/DD/HH.
+	const now = new Date(store.get('path').replace(/\//g, '-').replace(/-(\d+)$/, 'T$1:00Z')).getTime();
+	let hour = 0; // TODO: Compute.
+	for (const key in data.hours) {
+		if (data.hours[key] > now) {
+			break;
+		}
+		hour = key;
+	}
+	const elevation = header.modelElevation || header.elevation;
+	let dryAdiabatTemp = data['temp-surface'][hour];
+	// TODO: This maybe depends on pressure.
+	const cloudBase = elevation + (dryAdiabatTemp - data['dewpoint-surface'][hour]) * 122;
+	const layers = {temp: {}, gh: {}};
+	for (const key in data) {
+		const match = /^(temp|gh)-(\d+)h$/.exec(key);
+		if (match) {
+			layers[match[1]][match[2]] = data[key][hour];
+		}
+	}
+	let ceiling = elevation;
+	let prevTemp = dryAdiabatTemp;
+	Object.keys(layers.temp).sort((a, b) => b - a).some(pressure => {
+		const gh = layers.gh[pressure];
+		if (gh > ceiling) {
+			const temp = layers.temp[pressure];
+			const height = gh - ceiling;
+			if (temp > dryAdiabatTemp - height * .01) {
+				// X = -.01 * Y + dryAdiabatTemp
+				// X = ((temp - prevTemp) / height) * Y + prevTemp
+				// -.01 * Y + dryAdiabatTemp = ((temp - prevTemp) / height) * Y + prevTemp
+				// (((temp - prevTemp) / height) + .01) * Y = dryAdiabatTemp - prevTemp
+				// Y = (dryAdiabatTemp - prevTemp) / (((temp - prevTemp) / height) + .01)
+				ceiling += (dryAdiabatTemp - prevTemp) / (((temp - prevTemp) / height) + .01);
+				return true;
+			}
+			dryAdiabatTemp -= height * .01;
+			ceiling = gh;
+			prevTemp = temp;
+		}
+	});
+	return Math.min(ceiling, cloudBase);
+}
 
 function redraw() {
 	interpolator(interpolate => {
@@ -146,11 +218,15 @@ function updateMarker(latLon, wind) {
 function getTooltip(sites) {
 	let wind;
 	let forecast;
+	let airData;
+	const model = getModel();
 	const tooltips = sites.map(site => {
 		// Site latLon might be slightly different from wind latLon due to a utils.isNear call. However one will eventually match.
-		wind = wind || (winds[site.latitude + ' ' + site.longitude]);
-		forecast = forecast || (forecasts[getModel()] && forecasts[getModel()][site.latitude + ' ' + site.longitude]);
-		return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> ' + site.altitude + ' mnm (' + site.superelevation + ' m)<br>';
+		const latLon = site.latitude + ' ' + site.longitude;
+		wind = wind || winds[latLon];
+		forecast = forecast || (forecasts[model] && forecasts[model][latLon]);
+		airData = airData || (airDatas[model] && airDatas[model][latLon]);
+		return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> ' + site.altitude + ' mnm (' + site.superelevation + ' m)';
 	});
 	const extra = [];
 	if (wind) {
@@ -171,7 +247,16 @@ function getTooltip(sites) {
 			extra.push('<a ' + href + '><img src="img/icons4/png_25px/' + icon + '.png" style="height: 1.3em; vertical-align: middle;"></a>' + (data.mm ? ' ' + data.mm + ' mm' : ''));
 		}
 	}
-	return tooltips.join('') + extra.join(' ');
+	tooltips.push(extra.join(' '));
+	const p = sites[0].latitude + 'x' + sites[0].longitude;
+	const t = store.get('path').replace(/\//g, '-').replace(/-(\d+)$/, 'T$1:00:00Z');
+	const s = encodeURIComponent(sites[0].name);
+	tooltips.push('<span title="Nižší z průsečíků suché adiabaty s teplotou a izogramou">Dostupy</span>:'
+		+ ' <a href="http://www.xcmeteo.net/?p=' + p + ',t=' + t + ',s=' + s + '" target="_blank">'
+		+ (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-')
+		+ '</a>'
+	);
+	return tooltips.join('<br>');
 }
 
 /** Gets model usable for forecast.
@@ -186,7 +271,7 @@ function getModel() {
  * @return {?Forecast} Null if there's no forecast.
  */
 function getForecast(forecast) {
-	// The format of 'path' is year/month/day/hour.
+	// The format of 'path' is YYYY/MM/DD/HH.
 	const path = store.get('path').replace(/\//g, '-');
 	const day = forecast.data[path.replace(/-\d+$/, '')] || [];
 	let last = null;
