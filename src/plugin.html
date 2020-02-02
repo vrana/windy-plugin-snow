@@ -47,9 +47,6 @@ const forecasts = {};
 this.onopen = () => {
 	if (Object.keys(markers).length) {
 		// Opening already loaded layer.
-		for (const marker of markers) {
-			marker.addTo(map);
-		}
 		return;
 	}
 	fetch('https://www.paragliding-mapa.cz/api/v0.1/launch').then(response => response.json()).then(launch => {
