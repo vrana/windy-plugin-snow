@@ -122,7 +122,11 @@ function loadForecast(latLon) {
 		forecasts[model][latLon] = forecast.data;
 		const data = getForecast(forecast.data);
 		// After loading the forecast, update the tooltip and possibly also the icon.
-		updateMarker(latLon, data && {wind: data.wind, dir: data.windDir, gust: data.gust});
+		updateMarker(latLon, data
+			// If we already have wind from interpolator then keep it.
+			? Object.assign({wind: data.wind, dir: data.windDir, gust: data.gust}, winds[latLon])
+			: winds[latLon]
+		);
 	});
 	return false;
 }
@@ -132,9 +136,7 @@ function loadForecast(latLon) {
  * @param {Wind} wind
  */
 function updateMarker(latLon, wind) {
-	winds[latLon] = winds[latLon] || wind; // If we already have wind from interpolator then keep it.
-	winds[latLon].gust = wind.gust;
-	wind = winds[latLon];
+	winds[latLon] = wind;
 	markers[latLon].setIcon(newIcon(getIconUrl(sites[latLon], wind), map.getZoom()));
 	markers[latLon].setOpacity(getColor(sites[latLon], wind) != 'red' ? 1 : .4);
 	markers[latLon].setPopupContent(getTooltip(sites[latLon]));

@@ -187,19 +187,17 @@ function () {
     }, getLatLon(latLon))).then(function (forecast) {
       forecasts[model][latLon] = forecast.data;
       var data = getForecast(forecast.data);
-      updateMarker(latLon, data && {
+      updateMarker(latLon, data ? Object.assign({
         wind: data.wind,
         dir: data.windDir,
         gust: data.gust
-      });
+      }, winds[latLon]) : winds[latLon]);
     });
     return false;
   }
 
   function updateMarker(latLon, wind) {
-    winds[latLon] = winds[latLon] || wind;
-    winds[latLon].gust = wind.gust;
-    wind = winds[latLon];
+    winds[latLon] = wind;
     markers[latLon].setIcon(newIcon(getIconUrl(sites[latLon], wind), map.getZoom()));
     markers[latLon].setOpacity(getColor(sites[latLon], wind) != 'red' ? 1 : .4);
     markers[latLon].setPopupContent(getTooltip(sites[latLon]));
