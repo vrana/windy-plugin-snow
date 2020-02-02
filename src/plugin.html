@@ -250,7 +250,7 @@ function getTooltip(sites) {
 		}
 	}
 	tooltips.push(extra.join(' '));
-	const p = sites[0].latitude + 'x' + sites[0].longitude;
+	const p = sites[0].longitude + 'x' + sites[0].latitude;
 	const t = store.get('path').replace(/\//g, '-').replace(/-(\d+)$/, 'T$1:00:00Z');
 	const s = encodeURIComponent(sites[0].name);
 	tooltips.push('<span title="nižší z průsečíků suché adiabaty s teplotou a izogramou">Dostupy</span>:'
