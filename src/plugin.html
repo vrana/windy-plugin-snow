@@ -410,7 +410,8 @@ function getLatLon(latLon) {
  * @return {string}
  */
 function translate(english, czech) {
-	return store.get('usedLang') == 'cs' ? czech : english;
+	const lang = store.get('lang');
+	return (lang == 'auto' ? store.get('usedLang') : lang) == 'cs' ? czech : english;
 }
 
 /** Escapes special HTML characters.

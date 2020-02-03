@@ -445,7 +445,8 @@ function () {
   }
 
   function translate(english, czech) {
-    return store.get('usedLang') == 'cs' ? czech : english;
+    var lang = store.get('lang');
+    return (lang == 'auto' ? store.get('usedLang') : lang) == 'cs' ? czech : english;
   }
 
   function html(text) {
