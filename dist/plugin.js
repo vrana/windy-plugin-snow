@@ -100,7 +100,7 @@ function () {
           riseOnHover: true
         }).addTo(map);
         marker.bindPopup(getTooltip(sites[latLon]), {
-          minWidth: 160
+          minWidth: 170
         });
         marker.on('mouseover', function () {
           return marker.openPopup();
