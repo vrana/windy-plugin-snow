@@ -286,7 +286,8 @@ function () {
   }
 
   function getModel() {
-    return store.get('product') == 'gfs' ? 'gfs' : 'ecmwf';
+    var product = store.get('product');
+    return product == 'gfs' || product == 'iconEu' ? product : 'ecmwf';
   }
 
   function getForecast(forecast) {

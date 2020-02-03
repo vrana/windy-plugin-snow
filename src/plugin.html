@@ -265,7 +265,9 @@ function getTooltip(sites) {
  * @return {string}
  */
 function getModel() {
-	return store.get('product') == 'gfs' ? 'gfs' : 'ecmwf';
+	const product = store.get('product');
+	// https://github.com/windycom/windy-plugins/blob/master/docs/WINDY_API.md#module-plugindataloader
+	return product == 'gfs' || product == 'iconEu' ? product : 'ecmwf';
 }
 
 /** Gets forecast for current time.
