@@ -262,7 +262,7 @@ function () {
 
     if (wind) {
       var colors = ['green', 'orange', 'red'];
-      extra.push('<a href=\'javascript:W.store.set("detailDisplay", "wind"); W.broadcast.fire("rqstOpen", "detail", {lat: ' + sites[0].latitude + ', lon: ' + sites[0].longitude + '});\'>' + '<span style="color: ' + colors[getDirIndex(sites, wind.dir)] + ';" title="' + translate('ground wind direction', 'směr větru u země') + '"><span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '°</span>' + ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';"' + (wind.gust != null ? ' title="' + translate('ground wind speed', 'rychlost větru u země') + '&#10;' + translate('gusts', 'nárazy') + ': ' + wind.gust.toFixed(1) + ' m/s"' : '') + '>' + wind.wind.toFixed(1) + ' m/s</span>' + '</a>');
+      extra.push('<a href=\'javascript:W.store.set("detailDisplay", "wind"); W.broadcast.fire("rqstOpen", "detail", {lat: ' + sites[0].latitude + ', lon: ' + sites[0].longitude + '});\'>' + '<span style="color: ' + colors[getDirIndex(sites, wind.dir)] + ';" title="' + translate('ground wind direction', 'směr větru u země') + '"><span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '°</span>' + ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';" title="' + translate('ground wind speed', 'rychlost větru u země') + (wind.gust != null ? '&#10;' + translate('gusts', 'nárazy') + ': ' + wind.gust.toFixed(1) + ' m/s' : '') + '">' + wind.wind.toFixed(1) + ' m/s</span>' + '</a>');
     }
 
     if (forecast && !/FAKE/.test(forecast.header.note)) {
