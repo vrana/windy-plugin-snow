@@ -256,7 +256,7 @@ function () {
       wind = wind || winds[latLon];
       forecast = forecast || forecasts[model] && forecasts[model][latLon];
       airData = airData || airDatas[model] && airDatas[model][latLon];
-      return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span> (<span title="' + translate('height', 'převýšení') + '">' + site.superelevation + ' m</span>)';
+      return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span> (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)';
     });
     var extra = [];
 
@@ -280,7 +280,7 @@ function () {
     var p = sites[0].longitude + 'x' + sites[0].latitude;
     var t = store.get('path').replace(/\//g, '-').replace(/-(\d+)$/, 'T$1:00:00Z');
     var s = encodeURIComponent(sites[0].name);
-    tooltips.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">' + translate('Ceiling', 'Dostupy') + '</span>:' + ' <a href="http://www.xcmeteo.net/?p=' + p + ',t=' + t + ',s=' + s + '" target="_blank" title="' + translate('source', 'zdroj') + ': Windy">' + (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-') + '</a>');
+    tooltips.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">' + translate('Possible climb', 'Dostupy') + '</span>:' + ' <a href="http://www.xcmeteo.net/?p=' + p + ',t=' + t + ',s=' + s + '" target="_blank" title="' + translate('source', 'zdroj') + ': Windy">' + (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-') + '</a>');
     return tooltips.join('<br>');
   }
 
