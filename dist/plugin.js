@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -40,6 +40,25 @@ function () {
     key: 'vVGMVsbSz6cWtZsxMPQURL88LKFYpojx',
     plugin: 'windy-plugin-pg-mapa'
   });
+
+  function getModel() {
+    var product = store.get('product');
+    return product == 'gfs' || product == 'iconEu' ? product : 'ecmwf';
+  }
+
+  function getLaunchAttrs() {
+    return ' target="_blank"';
+  }
+
+  function getWindAttrs(lat, lon) {
+    return ' href=\'javascript:W.store.set("detailDisplay", "wind"); W.broadcast.fire("rqstOpen", "detail", {lat: ' + lat + ', lon: ' + lon + '});\'';
+  }
+
+  function getForecastAttrs(lat, lon) {
+    return ' href=\'javascript:W.store.set("detailDisplay", "table"); W.broadcast.fire("rqstOpen", "detail", {lat: ' + lat + ', lon: ' + lon + '});\'';
+  }
+
+  this.onopen = init;
   var sites = {};
   var markers = {};
   var Wind;
@@ -49,7 +68,7 @@ function () {
   var AirData;
   var airDatas = {};
 
-  this.onopen = function () {
+  function init() {
     if (Object.keys(markers).length) {
       return;
     }
@@ -129,7 +148,7 @@ function () {
       redraw();
       broadcast.on('redrawFinished', redraw);
     });
-  };
+  }
 
   function computeCeiling(airData) {
     var header = airData.header,
@@ -256,13 +275,13 @@ function () {
       wind = wind || winds[latLon];
       forecast = forecast || forecasts[model] && forecasts[model][latLon];
       airData = airData || airDatas[model] && airDatas[model][latLon];
-      return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span> (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)';
+      return '<a href="' + site.url + '"' + getLaunchAttrs() + '>' + html(site.name) + '</a> <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span> (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)';
     });
     var extra = [];
 
     if (wind) {
       var colors = ['green', 'orange', 'red'];
-      extra.push('<a href=\'javascript:W.store.set("detailDisplay", "wind"); W.broadcast.fire("rqstOpen", "detail", {lat: ' + sites[0].latitude + ', lon: ' + sites[0].longitude + '});\'>' + '<span style="color: ' + colors[getDirIndex(sites, wind.dir)] + ';" title="' + translate('ground wind direction', 'směr větru u země') + '"><span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '°</span>' + ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';" title="' + translate('ground wind speed', 'rychlost větru u země') + (wind.gust != null ? '&#10;' + translate('gusts', 'nárazy') + ': ' + wind.gust.toFixed(1) + ' m/s' : '') + '">' + wind.wind.toFixed(1) + ' m/s</span>' + '</a>');
+      extra.push('<a' + getWindAttrs(sites[0].latitude, sites[0].longitude) + '>' + '<span style="color: ' + colors[getDirIndex(sites, wind.dir)] + ';" title="' + translate('ground wind direction', 'směr větru u země') + '"><span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '°</span>' + ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';" title="' + translate('ground wind speed', 'rychlost větru u země') + (wind.gust != null ? '&#10;' + translate('gusts', 'nárazy') + ': ' + wind.gust.toFixed(1) + ' m/s' : '') + '">' + wind.wind.toFixed(1) + ' m/s</span>' + '</a>');
     }
 
     if (forecast && !/FAKE/.test(forecast.header.note)) {
@@ -272,7 +291,7 @@ function () {
         var sunrise = new Date(forecast.header.sunrise).getHours();
         var sunset = new Date(forecast.header.sunset).getHours();
         var icon = data.icon2 + (data.hour > sunrise && data.hour <= sunset ? '' : '_night_' + data.moonPhase);
-        extra.push('<a href=\'javascript:W.store.set("detailDisplay", "table"); W.broadcast.fire("rqstOpen", "detail", {lat: ' + sites[0].latitude + ', lon: ' + sites[0].longitude + '});\'>' + '<img src="https://www.windy.com/img/icons4/png_25px/' + icon + '.png" style="height: 1.3em; vertical-align: middle;" title="' + translate('weather', 'počasí') + ' ' + model + '"></a>' + (data.mm ? ' <span title="' + translate('precipitation', 'srážky') + '">' + data.mm + ' mm</span>' : ''));
+        extra.push('<a' + getForecastAttrs(sites[0].latitude, sites[0].longitude) + '>' + '<img src="https://www.windy.com/img/icons4/png_25px/' + icon + '.png" style="height: 1.3em; vertical-align: middle;" title="' + translate('weather', 'počasí') + ' ' + model + '"></a>' + (data.mm ? ' <span title="' + translate('precipitation', 'srážky') + '">' + data.mm + ' mm</span>' : ''));
       }
     }
 
@@ -282,11 +301,6 @@ function () {
     var s = encodeURIComponent(sites[0].name);
     tooltips.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">' + translate('Possible climb', 'Dostupy') + '</span>:' + ' <a href="http://www.xcmeteo.net/?p=' + p + ',t=' + t + ',s=' + s + '" target="_blank" title="' + translate('source', 'zdroj') + ': Windy">' + (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-') + '</a>');
     return tooltips.join('<br>');
-  }
-
-  function getModel() {
-    var product = store.get('product');
-    return product == 'gfs' || product == 'iconEu' ? product : 'ecmwf';
   }
 
   function getForecast(forecast) {

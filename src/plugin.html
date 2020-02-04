@@ -12,6 +12,29 @@ const loadData = pluginDataLoader({
 	plugin: 'windy-plugin-pg-mapa',
 });
 
+/** Gets model usable for forecast.
+ * @return {string}
+ */
+function getModel() {
+	const product = store.get('product');
+	// https://github.com/windycom/windy-plugins/blob/master/docs/WINDY_API.md#module-plugindataloader
+	return product == 'gfs' || product == 'iconEu' ? product : 'ecmwf';
+}
+
+function getLaunchAttrs() {
+	return ' target="_blank"';
+}
+
+function getWindAttrs(lat, lon) {
+	return ' href=\'javascript:W.store.set("detailDisplay", "wind"); W.broadcast.fire("rqstOpen", "detail", {lat: ' + lat + ', lon: ' + lon + '});\'';
+}
+
+function getForecastAttrs(lat, lon) {
+	return ' href=\'javascript:W.store.set("detailDisplay", "table"); W.broadcast.fire("rqstOpen", "detail", {lat: ' + lat + ', lon: ' + lon + '});\'';
+}
+
+this.onopen = init;
+
 /** @type {Object<string, Array<{
  *   latitude: number,
  *   longitude: number,
@@ -55,7 +78,7 @@ let AirData;
 /** @type {Object<string, Object<string, AirData>>} key: model, key2: latLon */
 const airDatas = {};
 
-this.onopen = () => {
+function init() {
 	if (Object.keys(markers).length) {
 		// Opening already loaded layer.
 		return;
@@ -98,7 +121,7 @@ this.onopen = () => {
 		redraw(); // Redraw might be finished before the data is loaded.
 		broadcast.on('redrawFinished', redraw);
 	});
-};
+}
 
 /** Computes ceiling: min(dry abiabat crossing humidity, temperature crossing dry adiabat).
  * @param {AirData} airData
@@ -226,12 +249,12 @@ function getTooltip(sites) {
 		wind = wind || winds[latLon];
 		forecast = forecast || (forecasts[model] && forecasts[model][latLon]);
 		airData = airData || (airDatas[model] && airDatas[model][latLon]);
-		return '<a href="' + site.url + '" target="_blank">' + html(site.name) + '</a> <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span> (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)';
+		return '<a href="' + site.url + '"' + getLaunchAttrs() + '>' + html(site.name) + '</a> <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span> (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)';
 	});
 	const extra = [];
 	if (wind) {
 		const colors = ['green', 'orange', 'red'];
-		extra.push('<a href=\'javascript:W.store.set("detailDisplay", "wind"); W.broadcast.fire("rqstOpen", "detail", {lat: ' + sites[0].latitude + ', lon: ' + sites[0].longitude + '});\'>'
+		extra.push('<a' + getWindAttrs(sites[0].latitude, sites[0].longitude) + '>'
 			+ '<span style="color: ' + colors[getDirIndex(sites, wind.dir)] + ';" title="' + translate('ground wind direction', 'směr větru u země') + '"><span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '°</span>'
 			+ ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';" title="' + translate('ground wind speed', 'rychlost větru u země') + (wind.gust != null ? '&#10;' + translate('gusts', 'nárazy') + ': ' + wind.gust.toFixed(1) + ' m/s' : '') + '">' + wind.wind.toFixed(1) + ' m/s</span>'
 			+ '</a>');
@@ -243,7 +266,7 @@ function getTooltip(sites) {
 			const sunrise = new Date(forecast.header.sunrise).getHours();
 			const sunset = new Date(forecast.header.sunset).getHours();
 			const icon = data.icon2 + (data.hour > sunrise && data.hour <= sunset ? '' : '_night_' + data.moonPhase);
-			extra.push('<a href=\'javascript:W.store.set("detailDisplay", "table"); W.broadcast.fire("rqstOpen", "detail", {lat: ' + sites[0].latitude + ', lon: ' + sites[0].longitude + '});\'>'
+			extra.push('<a' + getForecastAttrs(sites[0].latitude, sites[0].longitude) + '>'
 				+ '<img src="https://www.windy.com/img/icons4/png_25px/' + icon + '.png" style="height: 1.3em; vertical-align: middle;" title="' + translate('weather', 'počasí') + ' ' + model + '"></a>'
 				+ (data.mm ? ' <span title="' + translate('precipitation', 'srážky') + '">' + data.mm + ' mm</span>' : '')
 			);
@@ -259,15 +282,6 @@ function getTooltip(sites) {
 		+ '</a>'
 	);
 	return tooltips.join('<br>');
-}
-
-/** Gets model usable for forecast.
- * @return {string}
- */
-function getModel() {
-	const product = store.get('product');
-	// https://github.com/windycom/windy-plugins/blob/master/docs/WINDY_API.md#module-plugindataloader
-	return product == 'gfs' || product == 'iconEu' ? product : 'ecmwf';
 }
 
 /** Gets forecast for current time.
