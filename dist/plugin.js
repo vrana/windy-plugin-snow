@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -212,7 +212,7 @@ function () {
 
           if (store.get('overlay') == 'wind') {
             var data = interpolate(getLatLon(latLon));
-            wind = data && utils.wind2obj(data);
+            wind = data && Object.assign(winds[latLon] || {}, utils.wind2obj(data));
           } else if (loadForecast(latLon)) {
             var _data = getForecast(forecasts[getModel()][latLon]);
 
@@ -223,9 +223,8 @@ function () {
             };
           }
 
-          delete winds[latLon];
-
           if (!wind) {
+            delete winds[latLon];
             var url = markers[latLon]._icon.src;
             markers[latLon].setIcon(newIcon(url, map.getZoom()));
           } else {
