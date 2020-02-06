@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -274,7 +274,7 @@ function () {
       wind = wind || winds[latLon];
       forecast = forecast || forecasts[model] && forecasts[model][latLon];
       airData = airData || airDatas[model] && airDatas[model][latLon];
-      return '<a href="' + site.url + '"' + getLaunchAttrs() + '>' + html(site.name) + '</a> <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span> (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)';
+      return '<a href="' + site.url + '"' + getLaunchAttrs() + (isSiteForbidden(site) ? ' style="color: red;" title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') + '>' + html(site.name) + '</a>' + ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' + ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)';
     });
     var extra = [];
 
@@ -370,12 +370,21 @@ function () {
   }
 
   function getColor(sites, wind) {
+    var colors = ['lime', 'yellow', 'red'];
+
+    if (sites.some(isSiteForbidden)) {
+      return colors[2];
+    }
+
     if (!wind) {
       return 'white';
     }
 
-    var colors = ['lime', 'yellow', 'red'];
     return colors[Math.max(getSpeedIndex(wind.wind), getDirIndex(sites, wind.dir))];
+  }
+
+  function isSiteForbidden(site) {
+    return site.flying_status == 4;
   }
 
   function getSpeedIndex(speed) {
