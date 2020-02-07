@@ -59,6 +59,7 @@ function () {
   }
 
   this.onopen = init;
+  var Site;
   var sites = {};
   var markers = {};
   var Wind;

@@ -37,15 +37,18 @@ this.onopen = init;
 
 // Same as https://pg.vrana.cz/mapa/ from here.
 
-/** @type {Object<string, Array<{
+/** @typedef {{
  *   latitude: number,
  *   longitude: number,
  *   name: string,
  *   url: string,
  *   superelevation: number,
+ *   flying_status: number,
  *   wind_usable_from: number,
  *   wind_usable_to: number,
- * }>>} key: latLon */
+ * }} */
+let Site;
+/** @type {Object<string, Array<Site>>} key: latLon */
 const sites = {};
 /** @type {Object<string, L.marker>} key: latLon */
 const markers = {};
@@ -316,7 +319,7 @@ function getForecast(forecast) {
 }
 
 /** Gets URL with SVG image.
- * @param {Array<{flying_status: number, wind_usable_from: number, wind_usable_to: number}>} sites
+ * @param {Array<Site>} sites
  * @param {Wind} wind
  * @return {string}
  */
@@ -334,7 +337,7 @@ function getIconUrl(sites, wind) {
 }
 
 /** Gets color for wind.
- * @param {Array<{flying_status: number, wind_usable_from: number, wind_usable_to: number}>} sites
+ * @param {Array<Site>} sites
  * @param {Wind} wind
  * @return {string}
  */
@@ -371,7 +374,7 @@ function getSpeedIndex(speed) {
 }
 
 /** Gets color index for wind direction.
- * @param {Array<{wind_usable_from: number, wind_usable_to: number}>} sites
+ * @param {Array<Site>} sites
  * @param {number} dir
  * @return {int} 0 good, 1 almost, 2 bad
  */
