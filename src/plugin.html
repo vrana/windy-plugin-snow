@@ -12,6 +12,9 @@ const loadData = pluginDataLoader({
 	plugin: 'windy-plugin-pg-mapa',
 });
 
+function onLaunchLoad() {
+}
+
 /** Gets model usable for forecast.
  * @return {string}
  */
@@ -125,6 +128,7 @@ function init() {
 		
 		redraw(); // Redraw might be finished before the data is loaded.
 		broadcast.on('redrawFinished', redraw);
+		onLaunchLoad();
 	});
 }
 

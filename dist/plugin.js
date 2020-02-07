@@ -41,6 +41,8 @@ function () {
     plugin: 'windy-plugin-pg-mapa'
   });
 
+  function onLaunchLoad() {}
+
   function getModel() {
     var product = store.get('product');
     return product == 'gfs' || product == 'iconEu' ? product : 'ecmwf';
@@ -148,6 +150,7 @@ function () {
 
       redraw();
       broadcast.on('redrawFinished', redraw);
+      onLaunchLoad();
     });
   }
 
