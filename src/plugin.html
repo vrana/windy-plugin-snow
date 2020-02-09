@@ -182,7 +182,7 @@ function redraw() {
 					// If the displayed overlay is 'wind' then use it.
 					const data = interpolate(getLatLon(latLon));
 					wind = data && Object.assign(winds[latLon] || {}, utils.wind2obj(data)); // Keep gust if we have it.
-				} else if (loadForecast(latLon)) {
+				} else if (loadForecast(latLon)) { // TODO: Do not load the forecast if we already have wind for this model and time.
 					// If we already have the forecast loaded then use it, otherwise loadForecast will use it.
 					const data = getForecast(forecasts[getModel()][latLon]);
 					wind = data && {wind: data.wind, dir: data.windDir, gust: data.gust};
@@ -280,8 +280,9 @@ function getTooltip(sites) {
 	const p = sites[0].longitude + 'x' + sites[0].latitude;
 	const t = store.get('path').replace(/\//g, '-').replace(/-(\d+)$/, 'T$1:00:00Z');
 	const s = encodeURIComponent(sites[0].name);
-	tooltips.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">' + translate('Possible climb', 'Dostupy') + '</span>:'
-		+ ' <a href="http://www.xcmeteo.net/?p=' + p + ',t=' + t + ',s=' + s + '" target="_blank" title="' + translate('source', 'zdroj') + ': Windy">'
+	tooltips.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">'
+		+ translate('Possible climb', 'Dostupy') + '</span>:'
+		+ ' <a href="http://www.xcmeteo.net/?p=' + p + ',t=' + t + ',s=' + s + '" target="_blank" title="' + translate('source', 'zdroj') + ': Windy ' + getModel() + '">'
 		+ (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-')
 		+ '</a>'
 	);

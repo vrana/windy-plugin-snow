@@ -298,7 +298,7 @@ function () {
     var p = sites[0].longitude + 'x' + sites[0].latitude;
     var t = store.get('path').replace(/\//g, '-').replace(/-(\d+)$/, 'T$1:00:00Z');
     var s = encodeURIComponent(sites[0].name);
-    tooltips.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">' + translate('Possible climb', 'Dostupy') + '</span>:' + ' <a href="http://www.xcmeteo.net/?p=' + p + ',t=' + t + ',s=' + s + '" target="_blank" title="' + translate('source', 'zdroj') + ': Windy">' + (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-') + '</a>');
+    tooltips.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">' + translate('Possible climb', 'Dostupy') + '</span>:' + ' <a href="http://www.xcmeteo.net/?p=' + p + ',t=' + t + ',s=' + s + '" target="_blank" title="' + translate('source', 'zdroj') + ': Windy ' + getModel() + '">' + (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-') + '</a>');
     return tooltips.join('<br>');
   }
 
