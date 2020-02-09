@@ -35,6 +35,8 @@ function getForecastAttrs(lat, lon) {
 
 this.onopen = init;
 
+// Same as https://pg.vrana.cz/mapa/ from here.
+
 /** @type {Object<string, Array<{
  *   latitude: number,
  *   longitude: number,
@@ -182,7 +184,7 @@ function redraw() {
 					// If the displayed overlay is 'wind' then use it.
 					const data = interpolate(getLatLon(latLon));
 					wind = data && Object.assign(winds[latLon] || {}, utils.wind2obj(data)); // Keep gust if we have it.
-				} else if (loadForecast(latLon)) { // TODO: Do not load the forecast if we already have wind for this model and time.
+				} else if (loadForecast(latLon)) { // TODO: Do not load the forecast if we already have surface wind for this model and time.
 					// If we already have the forecast loaded then use it, otherwise loadForecast will use it.
 					const data = getForecast(forecasts[getModel()][latLon]);
 					wind = data && {wind: data.wind, dir: data.windDir, gust: data.gust};
@@ -258,9 +260,14 @@ function getTooltip(sites) {
 	const extra = [];
 	if (wind) {
 		const colors = ['green', 'orange', 'red'];
+		// We could get the high wind from airData for the other overlays but it's probably not worth it.
+		const windHeight = ' ' + (store.get('level') == 'surface' || store.get('overlay') != 'wind' ? translate('on surface', 'na zemi') : translate('at', 'v') + ' ' + store.get('level'));
 		extra.push('<a' + getWindAttrs(sites[0].latitude, sites[0].longitude) + '>'
-			+ '<span style="color: ' + colors[getDirIndex(sites, wind.dir)] + ';" title="' + translate('ground wind direction', 'směr větru u země') + '"><span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '°</span>'
-			+ ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';" title="' + translate('ground wind speed', 'rychlost větru u země') + (wind.gust != null ? '&#10;' + translate('gusts', 'nárazy') + ': ' + wind.gust.toFixed(1) + ' m/s' : '') + '">' + wind.wind.toFixed(1) + ' m/s</span>'
+			+ '<span style="color: ' + colors[getDirIndex(sites, wind.dir)] + ';" title="' + translate('wind direction', 'směr větru') + windHeight + '">'
+			+ '<span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '°</span>'
+			+ ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';" title="' + translate('wind speed', 'rychlost větru') + windHeight
+			+ (wind.gust != null ? '&#10;' + translate('gusts', 'nárazy') + ' ' + translate('on surface', 'na zemi') + ': ' + wind.gust.toFixed(1) + ' m/s' : '') + '">'
+			+ wind.wind.toFixed(1) + ' m/s</span>'
 			+ '</a>');
 	}
 	if (forecast && !/FAKE/.test(forecast.header.note)) {
