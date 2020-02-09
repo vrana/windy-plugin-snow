@@ -274,7 +274,7 @@ function () {
       wind = wind || winds[latLon];
       forecast = forecast || forecasts[model] && forecasts[model][latLon];
       airData = airData || airDatas[model] && airDatas[model][latLon];
-      return '<a href="' + site.url + '"' + getLaunchAttrs() + (isSiteForbidden(site) ? ' style="color: red;" title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') + '>' + html(site.name) + '</a>' + ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' + ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)';
+      return '<b style="font-size: 1.25em;"><a href="' + site.url + '"' + getLaunchAttrs() + (isSiteForbidden(site) ? ' style="color: red;" title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') + '>' + html(site.name) + '</a></b>' + ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' + ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)';
     });
     var extra = [];
 
