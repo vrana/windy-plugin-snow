@@ -218,12 +218,7 @@ function () {
             var data = interpolate(getLatLon(latLon));
             wind = data && utils.wind2obj(data);
           } else if (loadForecast(latLon)) {
-            var _data = getForecast(forecasts[getModel()][latLon]);
-
-            wind = _data && {
-              wind: _data.wind,
-              dir: _data.windDir
-            };
+            wind = getWindFromForecast(forecasts[getModel()][latLon]);
           }
 
           if (!wind) {
@@ -250,13 +245,17 @@ function () {
       model: model
     }, getLatLon(latLon))).then(function (forecast) {
       forecasts[model][latLon] = forecast.data;
-      var data = getForecast(forecast.data);
-      updateMarker(latLon, data ? Object.assign({
-        wind: data.wind,
-        dir: data.windDir
-      }, winds[latLon]) : winds[latLon]);
+      updateMarker(latLon, winds[latLon] || getWindFromForecast(forecast.data));
     });
     return false;
+  }
+
+  function getWindFromForecast(forecast) {
+    var data = getForecast(forecast);
+    return data && {
+      wind: data.wind,
+      dir: data.windDir
+    };
   }
 
   function updateMarker(latLon, wind) {

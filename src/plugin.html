@@ -193,8 +193,7 @@ function redraw() {
 					wind = data && utils.wind2obj(data);
 				} else if (loadForecast(latLon)) { // TODO: Do not load the forecast if we already have surface wind for this model and time.
 					// If we already have the forecast loaded then use it, otherwise loadForecast will use it.
-					const data = getForecast(forecasts[getModel()][latLon]);
-					wind = data && {wind: data.wind, dir: data.windDir};
+					wind = getWindFromForecast(forecasts[getModel()][latLon]);
 				}
 				if (!wind) {
 					delete winds[latLon];
@@ -221,15 +220,19 @@ function loadForecast(latLon) {
 	}
 	loadData('forecast', Object.assign({model}, getLatLon(latLon))).then(forecast => {
 		forecasts[model][latLon] = forecast.data;
-		const data = getForecast(forecast.data);
 		// After loading the forecast, update the tooltip and possibly also the icon.
-		updateMarker(latLon, data
-			// If we already have wind from interpolator then keep it.
-			? Object.assign({wind: data.wind, dir: data.windDir}, winds[latLon])
-			: winds[latLon]
-		);
+		updateMarker(latLon, winds[latLon] || getWindFromForecast(forecast.data));
 	});
 	return false;
+}
+
+/** Gets wind data from forecast.
+ * @param {{data: Object<string, Array<Forecast>>}} forecast Loaded forecast.data.
+ * @return {?Wind}
+ */
+function getWindFromForecast(forecast) {
+	const data = getForecast(forecast);
+	return data && {wind: data.wind, dir: data.windDir};
 }
 
 /** Sets color, opacity and tooltip of a marker.
