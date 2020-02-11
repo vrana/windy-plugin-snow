@@ -55,7 +55,7 @@ let Site;
 const sites = {};
 /** @type {Object<string, L.marker>} key: latLon */
 const markers = {};
-/** @typedef {{wind: number, dir: number, gust: number|undefined}} */
+/** @typedef {{wind: number, dir: number}} */
 let Wind;
 /** @type {Object<string, Wind>} key: latLon */
 const winds = {};
@@ -190,11 +190,11 @@ function redraw() {
 				if (store.get('overlay') == 'wind') {
 					// If the displayed overlay is 'wind' then use it.
 					const data = interpolate(getLatLon(latLon));
-					wind = data && Object.assign(winds[latLon] || {}, utils.wind2obj(data)); // Keep gust if we have it.
+					wind = data && utils.wind2obj(data);
 				} else if (loadForecast(latLon)) { // TODO: Do not load the forecast if we already have surface wind for this model and time.
 					// If we already have the forecast loaded then use it, otherwise loadForecast will use it.
 					const data = getForecast(forecasts[getModel()][latLon]);
-					wind = data && {wind: data.wind, dir: data.windDir, gust: data.gust};
+					wind = data && {wind: data.wind, dir: data.windDir};
 				}
 				if (!wind) {
 					delete winds[latLon];
@@ -225,7 +225,7 @@ function loadForecast(latLon) {
 		// After loading the forecast, update the tooltip and possibly also the icon.
 		updateMarker(latLon, data
 			// If we already have wind from interpolator then keep it.
-			? Object.assign({wind: data.wind, dir: data.windDir, gust: data.gust}, winds[latLon])
+			? Object.assign({wind: data.wind, dir: data.windDir}, winds[latLon])
 			: winds[latLon]
 		);
 	});
@@ -264,6 +264,7 @@ function getTooltip(sites) {
 			+ ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)'
 		;
 	});
+	const data = forecast && !/FAKE/.test(forecast.header.note) && getForecast(forecast);
 	const extra = [];
 	if (wind) {
 		const colors = ['green', 'orange', 'red'];
@@ -273,22 +274,19 @@ function getTooltip(sites) {
 			+ '<span style="color: ' + colors[getDirIndex(sites, wind.dir)] + ';" title="' + translate('wind direction', 'směr větru') + windHeight + '">'
 			+ '<span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '°</span>'
 			+ ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';" title="' + translate('wind speed', 'rychlost větru') + windHeight
-			+ (wind.gust != null ? '&#10;' + translate('gusts', 'nárazy') + ' ' + translate('on surface', 'na zemi') + ': ' + wind.gust.toFixed(1) + ' m/s' : '') + '">'
+			+ (data && data.gust != null ? '&#10;' + translate('gusts', 'nárazy') + ' ' + translate('on surface', 'na zemi') + ': ' + data.gust.toFixed(1) + ' m/s' : '') + '">'
 			+ wind.wind.toFixed(1) + ' m/s</span>'
 			+ '</a>');
 	}
-	if (forecast && !/FAKE/.test(forecast.header.note)) {
-		const data = getForecast(forecast);
-		if (data) {
-			// We don't have data about twilight, use sunrise and sunset instead.
-			const sunrise = new Date(forecast.header.sunrise).getHours();
-			const sunset = new Date(forecast.header.sunset).getHours();
-			const icon = data.icon2 + (data.hour > sunrise && data.hour <= sunset ? '' : '_night_' + data.moonPhase);
-			extra.push('<a' + getForecastAttrs(sites[0].latitude, sites[0].longitude) + '>'
-				+ '<img src="https://www.windy.com/img/icons4/png_25px/' + icon + '.png" style="height: 1.3em; vertical-align: middle;" title="' + translate('weather', 'počasí') + ' ' + model + '"></a>'
-				+ (data.mm ? ' <span title="' + translate('precipitation', 'srážky') + '">' + data.mm + ' mm</span>' : '')
-			);
-		}
+	if (data) {
+		// We don't have data about twilight, use sunrise and sunset instead.
+		const sunrise = new Date(forecast.header.sunrise).getHours();
+		const sunset = new Date(forecast.header.sunset).getHours();
+		const icon = data.icon2 + (data.hour > sunrise && data.hour <= sunset ? '' : '_night_' + data.moonPhase);
+		extra.push('<a' + getForecastAttrs(sites[0].latitude, sites[0].longitude) + '>'
+			+ '<img src="https://www.windy.com/img/icons4/png_25px/' + icon + '.png" style="height: 1.3em; vertical-align: middle;" title="' + translate('weather', 'počasí') + ' ' + model + '"></a>'
+			+ (data.mm ? ' <span title="' + translate('precipitation', 'srážky') + '">' + data.mm + ' mm</span>' : '')
+		);
 	}
 	tooltips.push(extra.join(' '));
 	const p = sites[0].longitude + 'x' + sites[0].latitude;

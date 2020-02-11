@@ -216,14 +216,13 @@ function () {
 
           if (store.get('overlay') == 'wind') {
             var data = interpolate(getLatLon(latLon));
-            wind = data && Object.assign(winds[latLon] || {}, utils.wind2obj(data));
+            wind = data && utils.wind2obj(data);
           } else if (loadForecast(latLon)) {
             var _data = getForecast(forecasts[getModel()][latLon]);
 
             wind = _data && {
               wind: _data.wind,
-              dir: _data.windDir,
-              gust: _data.gust
+              dir: _data.windDir
             };
           }
 
@@ -254,8 +253,7 @@ function () {
       var data = getForecast(forecast.data);
       updateMarker(latLon, data ? Object.assign({
         wind: data.wind,
-        dir: data.windDir,
-        gust: data.gust
+        dir: data.windDir
       }, winds[latLon]) : winds[latLon]);
     });
     return false;
@@ -280,23 +278,20 @@ function () {
       airData = airData || airDatas[model] && airDatas[model][latLon];
       return '<b style="font-size: 1.25em;"><a' + getLaunchAttrs(site) + (isSiteForbidden(site) ? ' style="color: red;" title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') + '>' + html(site.name) + '</a></b>' + ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' + ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)';
     });
+    var data = forecast && !/FAKE/.test(forecast.header.note) && getForecast(forecast);
     var extra = [];
 
     if (wind) {
       var colors = ['green', 'orange', 'red'];
       var windHeight = ' ' + (store.get('level') == 'surface' || store.get('overlay') != 'wind' ? translate('on surface', 'na zemi') : translate('at', 'v') + ' ' + store.get('level'));
-      extra.push('<a' + getWindAttrs(sites[0].latitude, sites[0].longitude) + '>' + '<span style="color: ' + colors[getDirIndex(sites, wind.dir)] + ';" title="' + translate('wind direction', 'směr větru') + windHeight + '">' + '<span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '°</span>' + ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';" title="' + translate('wind speed', 'rychlost větru') + windHeight + (wind.gust != null ? '&#10;' + translate('gusts', 'nárazy') + ' ' + translate('on surface', 'na zemi') + ': ' + wind.gust.toFixed(1) + ' m/s' : '') + '">' + wind.wind.toFixed(1) + ' m/s</span>' + '</a>');
+      extra.push('<a' + getWindAttrs(sites[0].latitude, sites[0].longitude) + '>' + '<span style="color: ' + colors[getDirIndex(sites, wind.dir)] + ';" title="' + translate('wind direction', 'směr větru') + windHeight + '">' + '<span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '°</span>' + ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';" title="' + translate('wind speed', 'rychlost větru') + windHeight + (data && data.gust != null ? '&#10;' + translate('gusts', 'nárazy') + ' ' + translate('on surface', 'na zemi') + ': ' + data.gust.toFixed(1) + ' m/s' : '') + '">' + wind.wind.toFixed(1) + ' m/s</span>' + '</a>');
     }
 
-    if (forecast && !/FAKE/.test(forecast.header.note)) {
-      var data = getForecast(forecast);
-
-      if (data) {
-        var sunrise = new Date(forecast.header.sunrise).getHours();
-        var sunset = new Date(forecast.header.sunset).getHours();
-        var icon = data.icon2 + (data.hour > sunrise && data.hour <= sunset ? '' : '_night_' + data.moonPhase);
-        extra.push('<a' + getForecastAttrs(sites[0].latitude, sites[0].longitude) + '>' + '<img src="https://www.windy.com/img/icons4/png_25px/' + icon + '.png" style="height: 1.3em; vertical-align: middle;" title="' + translate('weather', 'počasí') + ' ' + model + '"></a>' + (data.mm ? ' <span title="' + translate('precipitation', 'srážky') + '">' + data.mm + ' mm</span>' : ''));
-      }
+    if (data) {
+      var sunrise = new Date(forecast.header.sunrise).getHours();
+      var sunset = new Date(forecast.header.sunset).getHours();
+      var icon = data.icon2 + (data.hour > sunrise && data.hour <= sunset ? '' : '_night_' + data.moonPhase);
+      extra.push('<a' + getForecastAttrs(sites[0].latitude, sites[0].longitude) + '>' + '<img src="https://www.windy.com/img/icons4/png_25px/' + icon + '.png" style="height: 1.3em; vertical-align: middle;" title="' + translate('weather', 'počasí') + ' ' + model + '"></a>' + (data.mm ? ' <span title="' + translate('precipitation', 'srážky') + '">' + data.mm + ' mm</span>' : ''));
     }
 
     tooltips.push(extra.join(' '));
