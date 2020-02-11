@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -212,22 +212,18 @@ function () {
     interpolator(function (interpolate) {
       for (var latLon in markers) {
         if (map.getBounds().contains(getLatLon(latLon))) {
-          var wind = void 0;
-
-          if (store.get('overlay') == 'wind') {
-            var data = interpolate(getLatLon(latLon));
-            wind = data && utils.wind2obj(data);
-          } else if (loadForecast(latLon)) {
-            wind = getWindFromForecast(forecasts[getModel()][latLon]);
+          if (!winds[getWindsKey(latLon)]) {
+            if (store.get('overlay') == 'wind') {
+              var data = interpolate(getLatLon(latLon));
+              winds[getWindsKey(latLon)] = data && utils.wind2obj(data);
+            } else if (!loadForecast(latLon)) {
+              var url = markers[latLon]._icon.src;
+              markers[latLon].setIcon(newIcon(url, map.getZoom()));
+              continue;
+            }
           }
 
-          if (!wind) {
-            delete winds[latLon];
-            var url = markers[latLon]._icon.src;
-            markers[latLon].setIcon(newIcon(url, map.getZoom()));
-          } else {
-            updateMarker(latLon, wind);
-          }
+          updateMarker(latLon);
         }
       }
     });
@@ -245,21 +241,25 @@ function () {
       model: model
     }, getLatLon(latLon))).then(function (forecast) {
       forecasts[model][latLon] = forecast.data;
-      updateMarker(latLon, winds[latLon] || getWindFromForecast(forecast.data));
+      updateMarker(latLon);
     });
     return false;
   }
 
-  function getWindFromForecast(forecast) {
-    var data = getForecast(forecast);
+  function getWind(latLon) {
+    if (winds[getWindsKey(latLon)]) {
+      return winds[getWindsKey(latLon)];
+    }
+
+    var data = forecasts[getModel()] && forecasts[getModel()][latLon] && getForecast(forecasts[getModel()][latLon]);
     return data && {
       wind: data.wind,
       dir: data.windDir
     };
   }
 
-  function updateMarker(latLon, wind) {
-    winds[latLon] = wind;
+  function updateMarker(latLon) {
+    var wind = getWind(latLon);
     markers[latLon].setIcon(newIcon(getIconUrl(sites[latLon], wind), map.getZoom()));
     markers[latLon].setOpacity(getColor(sites[latLon], wind) != 'red' ? 1 : .4);
     markers[latLon].setPopupContent(getTooltip(sites[latLon]));
@@ -272,7 +272,7 @@ function () {
     var model = getModel();
     var tooltips = sites.map(function (site) {
       var latLon = site.latitude + ' ' + site.longitude;
-      wind = wind || winds[latLon];
+      wind = wind || getWind(latLon);
       forecast = forecast || forecasts[model] && forecasts[model][latLon];
       airData = airData || airDatas[model] && airDatas[model][latLon];
       return '<b style="font-size: 1.25em;"><a' + getLaunchAttrs(site) + (isSiteForbidden(site) ? ' style="color: red;" title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') + '>' + html(site.name) + '</a></b>' + ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' + ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)';
@@ -463,6 +463,10 @@ function () {
       lat: +parts[0],
       lon: +parts[1]
     };
+  }
+
+  function getWindsKey(latLon) {
+    return (store.get('overlay') == 'wind' ? store.get('product') + ':' + store.get('level') : getModel() + ':surface') + ':' + store.get('path') + ':' + latLon;
   }
 
   function translate(english, czech) {
