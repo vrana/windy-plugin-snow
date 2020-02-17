@@ -57,7 +57,7 @@ this.onopen = init;
 let Site;
 /** @type {Object<string, Array<Site>>} key: latLon */
 const sites = {};
-/** @type {Object<string, L.marker>} key: latLon */
+/** @type {Object<string, L.Marker>} key: latLon */
 const markers = {};
 /** @typedef {{wind: number, dir: number}} */
 let Wind;
@@ -134,56 +134,6 @@ function init() {
 		broadcast.on('redrawFinished', redraw);
 		onLaunchLoad();
 	});
-}
-
-/** Computes ceiling: min(dry abiabat crossing humidity, temperature crossing dry adiabat).
- * @param {AirData} airData
- * @return number Altitude in meters
- */
-function computeCeiling(airData) {
-	const {header, data} = airData;
-	// The format of 'path' is YYYY/MM/DD/HH.
-	const now = new Date(store.get('path').replace(/\//g, '-').replace(/-(\d+)$/, 'T$1:00Z')).getTime();
-	let hour = 0;
-	for (const key in data.hours) {
-		if (data.hours[key] > now) {
-			break;
-		}
-		hour = key;
-	}
-	const elevation = header.modelElevation || header.elevation;
-	let dryAdiabatTemp = data['temp-surface'][hour];
-	// TODO: This depends on pressure: http://slovnik.cmes.cz/heslo/9
-	const cloudBase = elevation + (dryAdiabatTemp - data['dewpoint-surface'][hour]) * 122;
-	const layers = {temp: {}, gh: {}};
-	for (const key in data) {
-		const match = /^(temp|gh)-(\d+)h$/.exec(key);
-		if (match) {
-			layers[match[1]][match[2]] = data[key][hour];
-		}
-	}
-	let ceiling = elevation;
-	let prevTemp = dryAdiabatTemp;
-	Object.keys(layers.temp).sort((a, b) => b - a).some(pressure => {
-		const gh = layers.gh[pressure];
-		if (gh > ceiling) {
-			const temp = layers.temp[pressure];
-			const height = gh - ceiling;
-			if (temp > dryAdiabatTemp - height * .01) {
-				// X = -.01 * Y + dryAdiabatTemp
-				// X = ((temp - prevTemp) / height) * Y + prevTemp
-				// -.01 * Y + dryAdiabatTemp = ((temp - prevTemp) / height) * Y + prevTemp
-				// (((temp - prevTemp) / height) + .01) * Y = dryAdiabatTemp - prevTemp
-				// Y = (dryAdiabatTemp - prevTemp) / (((temp - prevTemp) / height) + .01)
-				ceiling += (dryAdiabatTemp - prevTemp) / (((temp - prevTemp) / height) + .01);
-				return true;
-			}
-			dryAdiabatTemp -= height * .01;
-			ceiling = gh;
-			prevTemp = temp;
-		}
-	});
-	return Math.min(ceiling, cloudBase);
 }
 
 function redraw() {
@@ -415,7 +365,7 @@ function isDirIn(dir, from, to, tolerance = 0) {
 /** Creates new icon.
  * @param {string} url
  * @param {number} zoom
- * @return {L.icon}
+ * @return {L.Icon}
  */
 function newIcon(url, zoom) {
 	const size = zoom > 9 ? 38 : zoom > 6 ? 19 : zoom > 4 ? 9 : 5;
@@ -461,6 +411,56 @@ function getWindsKey(latLon) {
 		+ ':' + store.get('path')
 		+ ':' + latLon
 	;
+}
+
+/** Computes ceiling: min(dry abiabat crossing humidity, temperature crossing dry adiabat).
+ * @param {AirData} airData
+ * @return number Altitude in meters
+ */
+function computeCeiling(airData) {
+	const {header, data} = airData;
+	// The format of 'path' is YYYY/MM/DD/HH.
+	const now = new Date(store.get('path').replace(/\//g, '-').replace(/-(\d+)$/, 'T$1:00Z')).getTime();
+	let hour = 0;
+	for (const key in data.hours) {
+		if (data.hours[key] > now) {
+			break;
+		}
+		hour = key;
+	}
+	const elevation = header.modelElevation || header.elevation;
+	let dryAdiabatTemp = data['temp-surface'][hour];
+	// TODO: This depends on pressure: http://slovnik.cmes.cz/heslo/9
+	const cloudBase = elevation + (dryAdiabatTemp - data['dewpoint-surface'][hour]) * 122;
+	const layers = {temp: {}, gh: {}};
+	for (const key in data) {
+		const match = /^(temp|gh)-(\d+)h$/.exec(key);
+		if (match) {
+			layers[match[1]][match[2]] = data[key][hour];
+		}
+	}
+	let ceiling = elevation;
+	let prevTemp = dryAdiabatTemp;
+	Object.keys(layers.temp).sort((a, b) => b - a).some(pressure => {
+		const gh = layers.gh[pressure];
+		if (gh > ceiling) {
+			const temp = layers.temp[pressure];
+			const height = gh - ceiling;
+			if (temp > dryAdiabatTemp - height * .01) {
+				// X = -.01 * Y + dryAdiabatTemp
+				// X = ((temp - prevTemp) / height) * Y + prevTemp
+				// -.01 * Y + dryAdiabatTemp = ((temp - prevTemp) / height) * Y + prevTemp
+				// (((temp - prevTemp) / height) + .01) * Y = dryAdiabatTemp - prevTemp
+				// Y = (dryAdiabatTemp - prevTemp) / (((temp - prevTemp) / height) + .01)
+				ceiling += (dryAdiabatTemp - prevTemp) / (((temp - prevTemp) / height) + .01);
+				return true;
+			}
+			dryAdiabatTemp -= height * .01;
+			ceiling = gh;
+			prevTemp = temp;
+		}
+	});
+	return Math.min(ceiling, cloudBase);
 }
 
 /** Gets translation.

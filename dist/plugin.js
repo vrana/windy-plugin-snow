@@ -158,60 +158,6 @@ function () {
     });
   }
 
-  function computeCeiling(airData) {
-    var header = airData.header,
-        data = airData.data;
-    var now = new Date(store.get('path').replace(/\//g, '-').replace(/-(\d+)$/, 'T$1:00Z')).getTime();
-    var hour = 0;
-
-    for (var key in data.hours) {
-      if (data.hours[key] > now) {
-        break;
-      }
-
-      hour = key;
-    }
-
-    var elevation = header.modelElevation || header.elevation;
-    var dryAdiabatTemp = data['temp-surface'][hour];
-    var cloudBase = elevation + (dryAdiabatTemp - data['dewpoint-surface'][hour]) * 122;
-    var layers = {
-      temp: {},
-      gh: {}
-    };
-
-    for (var _key in data) {
-      var match = /^(temp|gh)-(\d+)h$/.exec(_key);
-
-      if (match) {
-        layers[match[1]][match[2]] = data[_key][hour];
-      }
-    }
-
-    var ceiling = elevation;
-    var prevTemp = dryAdiabatTemp;
-    Object.keys(layers.temp).sort(function (a, b) {
-      return b - a;
-    }).some(function (pressure) {
-      var gh = layers.gh[pressure];
-
-      if (gh > ceiling) {
-        var temp = layers.temp[pressure];
-        var height = gh - ceiling;
-
-        if (temp > dryAdiabatTemp - height * .01) {
-          ceiling += (dryAdiabatTemp - prevTemp) / ((temp - prevTemp) / height + .01);
-          return true;
-        }
-
-        dryAdiabatTemp -= height * .01;
-        ceiling = gh;
-        prevTemp = temp;
-      }
-    });
-    return Math.min(ceiling, cloudBase);
-  }
-
   function redraw() {
     interpolator(function (interpolate) {
       for (var latLon in markers) {
@@ -471,6 +417,60 @@ function () {
 
   function getWindsKey(latLon) {
     return (store.get('overlay') == 'wind' ? store.get('product') + ':' + store.get('level') : getModel() + ':surface') + ':' + store.get('path') + ':' + latLon;
+  }
+
+  function computeCeiling(airData) {
+    var header = airData.header,
+        data = airData.data;
+    var now = new Date(store.get('path').replace(/\//g, '-').replace(/-(\d+)$/, 'T$1:00Z')).getTime();
+    var hour = 0;
+
+    for (var key in data.hours) {
+      if (data.hours[key] > now) {
+        break;
+      }
+
+      hour = key;
+    }
+
+    var elevation = header.modelElevation || header.elevation;
+    var dryAdiabatTemp = data['temp-surface'][hour];
+    var cloudBase = elevation + (dryAdiabatTemp - data['dewpoint-surface'][hour]) * 122;
+    var layers = {
+      temp: {},
+      gh: {}
+    };
+
+    for (var _key in data) {
+      var match = /^(temp|gh)-(\d+)h$/.exec(_key);
+
+      if (match) {
+        layers[match[1]][match[2]] = data[_key][hour];
+      }
+    }
+
+    var ceiling = elevation;
+    var prevTemp = dryAdiabatTemp;
+    Object.keys(layers.temp).sort(function (a, b) {
+      return b - a;
+    }).some(function (pressure) {
+      var gh = layers.gh[pressure];
+
+      if (gh > ceiling) {
+        var temp = layers.temp[pressure];
+        var height = gh - ceiling;
+
+        if (temp > dryAdiabatTemp - height * .01) {
+          ceiling += (dryAdiabatTemp - prevTemp) / ((temp - prevTemp) / height + .01);
+          return true;
+        }
+
+        dryAdiabatTemp -= height * .01;
+        ceiling = gh;
+        prevTemp = temp;
+      }
+    });
+    return Math.min(ceiling, cloudBase);
   }
 
   function translate(english, czech) {
