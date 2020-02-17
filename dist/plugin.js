@@ -52,6 +52,10 @@ function () {
     return ' href="' + site.url + '" target="_blank"';
   }
 
+  function getLaunchExtra(site) {
+    return '';
+  }
+
   function getWindAttrs(lat, lon) {
     return ' href=\'javascript:W.store.set("detailDisplay", "wind"); W.broadcast.fire("rqstOpen", "detail", {lat: ' + lat + ', lon: ' + lon + '});\'';
   }
@@ -275,7 +279,7 @@ function () {
       wind = wind || getWind(latLon);
       forecast = forecast || forecasts[model] && forecasts[model][latLon];
       airData = airData || airDatas[model] && airDatas[model][latLon];
-      return '<b style="font-size: 1.25em;"><a' + getLaunchAttrs(site) + (isSiteForbidden(site) ? ' style="color: red;" title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') + '>' + html(site.name) + '</a></b>' + ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' + ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)';
+      return '<b style="font-size: 1.25em;"><a' + getLaunchAttrs(site) + (isSiteForbidden(site) ? ' style="color: red;" title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') + '>' + html(site.name) + '</a></b>' + ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' + ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)' + getLaunchExtra(site);
     });
     var data = forecast && !/FAKE/.test(forecast.header.note) && getForecast(forecast);
     var extra = [];

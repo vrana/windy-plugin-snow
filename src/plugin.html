@@ -28,6 +28,10 @@ function getLaunchAttrs(site) {
 	return ' href="' + site.url + '" target="_blank"';
 }
 
+function getLaunchExtra(site) {
+	return '';
+}
+
 function getWindAttrs(lat, lon) {
 	return ' href=\'javascript:W.store.set("detailDisplay", "wind"); W.broadcast.fire("rqstOpen", "detail", {lat: ' + lat + ', lon: ' + lon + '});\'';
 }
@@ -103,7 +107,7 @@ function init() {
 			// Store latitude and longitude in one key to avoid having sites[latitude] = sites[latitude] || {}.
 			sites[site.latitude + ' ' + site.longitude] = [site];
 		}
-		
+
 		for (const latLon in sites) {
 			const icon = newIcon(getIconUrl(sites[latLon], null), map.getZoom());
 			const marker = L.marker(getLatLon(latLon), {icon, riseOnHover: true}).addTo(map);
@@ -125,7 +129,7 @@ function init() {
 			});
 			markers[latLon] = marker;
 		}
-		
+
 		redraw(); // Redraw might be finished before the data is loaded.
 		broadcast.on('redrawFinished', redraw);
 		onLaunchLoad();
@@ -263,6 +267,7 @@ function getTooltip(sites) {
 			+ (isSiteForbidden(site) ? ' style="color: red;" title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') + '>' + html(site.name) + '</a></b>'
 			+ ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>'
 			+ ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)'
+			+ getLaunchExtra(site)
 		;
 	});
 	const data = forecast && !/FAKE/.test(forecast.header.note) && getForecast(forecast);
