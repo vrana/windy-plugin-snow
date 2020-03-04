@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -123,13 +123,13 @@ function () {
         var icon = newIcon(getIconUrl(sites[latLon], null), map.getZoom());
         var marker = L.marker(getLatLon(latLon), {
           icon: icon,
-          riseOnHover: true
+          riseOnHover: true,
+          title: sites[latLon].map(function (site) {
+            return site.name;
+          }).join('\n')
         }).addTo(map);
         marker.bindPopup(getTooltip(sites[latLon]), {
           minWidth: 170
-        });
-        marker.on('mouseover', function () {
-          return marker.openPopup();
         });
         marker.on('popupopen', function () {
           loadForecast(latLon);

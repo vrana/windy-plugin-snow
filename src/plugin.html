@@ -110,11 +110,10 @@ function init() {
 
 		for (const latLon in sites) {
 			const icon = newIcon(getIconUrl(sites[latLon], null), map.getZoom());
-			const marker = L.marker(getLatLon(latLon), {icon, riseOnHover: true}).addTo(map);
+			const marker = L.marker(getLatLon(latLon), {icon, riseOnHover: true, title: sites[latLon].map(site => site.name).join('\n')}).addTo(map);
 			// Leaflet supports binding function but that function is called only the first time the popup is opened.
 			marker.bindPopup(getTooltip(sites[latLon]), {minWidth: 170});
 			// Leaflet tooltips close when you hover the tooltip and they work poorly on mobile. Use popup instead.
-			marker.on('mouseover', () => marker.openPopup());
 			marker.on('popupopen', () => {
 				loadForecast(latLon);
 				const model = getModel();
