@@ -28,6 +28,10 @@ function getLaunchAttrs(site) {
 	return ' href="' + site.url + '" target="_blank"';
 }
 
+function getApiRoot() {
+	return 'https://www.paragliding-mapa.cz/';
+}
+
 function getLaunchExtra(site) {
 	return '';
 }
@@ -51,6 +55,7 @@ this.onopen = init;
  *   url: string,
  *   superelevation: number,
  *   flying_status: number,
+ *   active: number,
  *   wind_usable_from: number,
  *   wind_usable_to: number,
  * }} */
@@ -95,7 +100,7 @@ function init() {
 		// Opening already loaded layer.
 		return;
 	}
-	fetch('https://www.paragliding-mapa.cz/api/v0.1/launch').then(response => response.json()).then(launch => {
+	fetch(getApiRoot() + 'api/v0.1/launch').then(response => response.json()).then(launch => {
 		launchLoop: for (const site of launch.data) {
 			for (const latLon in sites) {
 				if (utils.isNear(getLatLon(latLon), {lat: site.latitude, lon: site.longitude})) {
@@ -310,11 +315,11 @@ function getColor(sites, wind) {
 }
 
 /** Checks if site forbidden.
- * @param {{flying_status: number}} site
+ * @param {Site} site
  * @return {boolean}
  */
 function isSiteForbidden(site) {
-	return (site.flying_status == 4);
+	return (site.flying_status == 4 || site.active == 0);
 }
 
 /** Gets color index for wind speed.

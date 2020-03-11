@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.2.7",
+  "version": "1.2.8",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -52,6 +52,10 @@ function () {
     return ' href="' + site.url + '" target="_blank"';
   }
 
+  function getApiRoot() {
+    return 'https://www.paragliding-mapa.cz/';
+  }
+
   function getLaunchExtra(site) {
     return '';
   }
@@ -80,7 +84,7 @@ function () {
       return;
     }
 
-    fetch('https://www.paragliding-mapa.cz/api/v0.1/launch').then(function (response) {
+    fetch(getApiRoot() + 'api/v0.1/launch').then(function (response) {
       return response.json();
     }).then(function (launch) {
       var _iteratorNormalCompletion = true;
@@ -333,7 +337,7 @@ function () {
   }
 
   function isSiteForbidden(site) {
-    return site.flying_status == 4;
+    return site.flying_status == 4 || site.active == 0;
   }
 
   function getSpeedIndex(speed) {
