@@ -64,6 +64,8 @@ let Site;
 const sites = {};
 /** @type {Object<string, L.Marker>} key: latLon */
 const markers = {};
+/** @type {?L.Marker} */
+let activeMarker = null;
 /** @typedef {{wind: number, dir: number}} */
 let Wind;
 /** @type {Object<string, Wind>} key: model:level:path:latLon */
@@ -120,6 +122,7 @@ function init() {
 			marker.bindPopup(getTooltip(sites[latLon]), {minWidth: 170});
 			// Leaflet tooltips close when you hover the tooltip and they work poorly on mobile. Use popup instead.
 			marker.on('popupopen', () => {
+				activeMarker = marker;
 				loadForecast(latLon);
 				const model = getModel();
 				airDatas[model] = airDatas[model] || {};
@@ -133,6 +136,7 @@ function init() {
 			});
 			markers[latLon] = marker;
 		}
+		map.on('popupclose', () => activeMarker = null);
 
 		redraw(); // Redraw might be finished before the data is loaded.
 		broadcast.on('redrawFinished', redraw);
@@ -158,6 +162,9 @@ function redraw() {
 				}
 				updateMarker(latLon);
 			}
+		}
+		if (activeMarker) {
+			activeMarker.fire('popupopen');
 		}
 	});
 }

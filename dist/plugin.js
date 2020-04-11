@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.2.12",
+  "version": "1.2.13",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -72,6 +72,7 @@ function () {
   var Site;
   var sites = {};
   var markers = {};
+  var activeMarker = null;
   var Wind;
   var winds = {};
   var Forecast;
@@ -136,6 +137,7 @@ function () {
           minWidth: 170
         });
         marker.on('popupopen', function () {
+          activeMarker = marker;
           loadForecast(latLon);
           var model = getModel();
           airDatas[model] = airDatas[model] || {};
@@ -156,6 +158,9 @@ function () {
         _loop(latLon);
       }
 
+      map.on('popupclose', function () {
+        return activeMarker = null;
+      });
       redraw();
       broadcast.on('redrawFinished', redraw);
       onLaunchLoad();
@@ -179,6 +184,10 @@ function () {
 
           updateMarker(latLon);
         }
+      }
+
+      if (activeMarker) {
+        activeMarker.fire('popupopen');
       }
     });
   }
