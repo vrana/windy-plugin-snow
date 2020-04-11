@@ -102,7 +102,7 @@ function init() {
 		// Opening already loaded layer.
 		return;
 	}
-	fetch(getApiRoot() + 'api/v0.1/launch').then(response => response.json()).then(launch => {
+	fetch(getApiRoot() + 'api/v0.1/launch?locale=' + translate('en', 'cs')).then(response => response.json()).then(launch => {
 		launchLoop: for (const site of launch.data) {
 			for (const latLon in sites) {
 				if (utils.isNear(getLatLon(latLon), {lat: site.latitude, lon: site.longitude})) {

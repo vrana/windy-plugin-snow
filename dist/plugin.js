@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.2.13",
+  "version": "1.2.14",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -85,7 +85,7 @@ function () {
       return;
     }
 
-    fetch(getApiRoot() + 'api/v0.1/launch').then(function (response) {
+    fetch(getApiRoot() + 'api/v0.1/launch?locale=' + translate('en', 'cs')).then(function (response) {
       return response.json();
     }).then(function (launch) {
       var _iteratorNormalCompletion = true;
