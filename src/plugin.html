@@ -305,7 +305,7 @@ function getIconUrl(sites, wind) {
  */
 function getColor(sites, wind) {
 	const colors = ['lime', 'yellow', 'red'];
-	if (sites.some(isSiteForbidden)) {
+	if (sites.every(isSiteForbidden)) {
 		return colors[2];
 	}
 	if (!wind) {

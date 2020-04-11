@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.2.8",
+  "version": "1.2.9",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -327,7 +327,7 @@ function () {
   function getColor(sites, wind) {
     var colors = ['lime', 'yellow', 'red'];
 
-    if (sites.some(isSiteForbidden)) {
+    if (sites.every(isSiteForbidden)) {
       return colors[2];
     }
 
