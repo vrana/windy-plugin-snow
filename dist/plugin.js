@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.2.9",
+  "version": "1.2.10",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -361,6 +361,11 @@ function () {
     try {
       for (var _iterator4 = sites[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
         var site = _step4.value;
+
+        if (isSiteForbidden(site)) {
+          continue;
+        }
+
         var from = site.wind_usable_from;
         var to = site.wind_usable_to;
 

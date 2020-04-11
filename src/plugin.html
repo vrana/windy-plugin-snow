@@ -343,6 +343,9 @@ function getSpeedIndex(speed) {
 function getDirIndex(sites, dir) {
 	let result = 2;
 	for (const site of sites) {
+		if (isSiteForbidden(site)) {
+			continue;
+		}
 		const from = site.wind_usable_from;
 		const to = site.wind_usable_to;
 		if (isDirIn(dir, from, to)) {
