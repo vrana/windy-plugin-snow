@@ -41,7 +41,7 @@ function getWindAttrs(lat, lon) {
 }
 
 function getForecastAttrs(lat, lon) {
-	return ' href=\'javascript:W.store.set("detailDisplay", "table"); W.broadcast.fire("rqstOpen", "detail", {lat: ' + lat + ', lon: ' + lon + '});\'';
+	return ' href=\'javascript:W.store.set("detailDisplay", "meteogram"); W.broadcast.fire("rqstOpen", "detail", {lat: ' + lat + ', lon: ' + lon + '});\'';
 }
 
 this.onopen = init;
