@@ -15,8 +15,7 @@ W.loadPlugin(
     "url": "git+https://github.com/vrana/windy-plugin-pg-mapa"
   },
   "description": "Windy plugin for paragliding takeoffs in Czechia and Slovakia.",
-  "displayName": "Paragliding Mapa",
-  "hook": ""
+  "displayName": "Paragliding Mapa"
 },
 /* HTML */
 '',
