@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.2.15",
+  "version": "1.3.0",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -16,7 +16,7 @@ W.loadPlugin(
   },
   "description": "Windy plugin for paragliding takeoffs in Czechia and Slovakia.",
   "displayName": "Paragliding Mapa",
-  "hook": "menu"
+  "hook": ""
 },
 /* HTML */
 '',
