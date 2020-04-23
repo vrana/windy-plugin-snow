@@ -8,7 +8,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -247,6 +247,11 @@ function () {
       var windHeight = ' ' + (store.get('level') == 'surface' || store.get('overlay') != 'wind' ? translate('on surface', 'na zemi') : translate('at', 'v') + ' ' + store.get('level'));
       extra.push('<a' + getWindAttrs(sites[0].latitude, sites[0].longitude) + '>' + '<span style="color: ' + colors[getDirIndex(sites, wind.dir)] + ';" title="' + translate('wind direction', 'směr větru') + windHeight + '">' + '<span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '°</span>' + ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';" title="' + translate('wind speed', 'rychlost větru') + windHeight + (data && data.gust != null ? '&#10;' + translate('gusts', 'nárazy') + ' ' + translate('on surface', 'na zemi') + ': ' + data.gust.toFixed(1) + ' m/s' : '') + '">' + wind.wind.toFixed(1) + ' m/s</span>' + '</a>');
     }
+
+    var meteoLinks = sites[0].link_meteo.match(/https?:\/\/\S+/g);
+    meteoLinks && meteoLinks.forEach(function (link) {
+      return extra.push('<a href="' + link + '" class="iconfont" style="vertical-align: middle;" title="' + translate('weather station', 'meteostanice') + '" target="_blank"></a>');
+    });
 
     if (data) {
       var sunrise = new Date(forecast.header.sunrise).getHours();
