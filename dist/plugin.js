@@ -14,7 +14,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -73,7 +73,16 @@ function () {
     return ' href=\'javascript:W.store.set("detailDisplay", "meteogram"); W.broadcast.fire("rqstOpen", "detail", {lat: ' + lat + ', lon: ' + lon + '});\'';
   }
 
-  this.onopen = init;
+  this.onopen = function () {
+    var openInApp = document.getElementById('open-in-app');
+
+    if (openInApp) {
+      openInApp.style.display = 'none';
+    }
+
+    init();
+  };
+
   var Site;
   var sites = {};
   var markers = {};

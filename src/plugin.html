@@ -44,7 +44,13 @@ function getForecastAttrs(lat, lon) {
 	return ' href=\'javascript:W.store.set("detailDisplay", "meteogram"); W.broadcast.fire("rqstOpen", "detail", {lat: ' + lat + ', lon: ' + lon + '});\'';
 }
 
-this.onopen = init;
+this.onopen = function () {
+	const openInApp = document.getElementById('open-in-app');
+	if (openInApp) {
+		openInApp.style.display = 'none';
+	}
+	init();
+}
 
 // Same as https://pg.vrana.cz/mapa/ from here.
 
