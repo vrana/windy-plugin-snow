@@ -257,6 +257,10 @@ function () {
     meteoLinks && meteoLinks.forEach(function (link) {
       return extra.push('<a href="' + link + '" class="iconfont" style="vertical-align: middle;" title="' + translate('weather station', 'meteostanice') + '" target="_blank"></a>');
     });
+    var webcamLinks = sites[0].link_webcam.match(/https?:\/\/\S+/g);
+    webcamLinks && webcamLinks.forEach(function (link) {
+      return extra.push('<a href="' + link + '" class="iconfont" style="vertical-align: middle;" title="' + translate('webcam', 'webkamera') + '" target="_blank">l</a>');
+    });
 
     if (data) {
       var sunrise = new Date(forecast.header.sunrise).getHours();
