@@ -266,7 +266,7 @@ function getTooltip(sites) {
 	}
 	tooltips.push(extra.join(' '));
 	const p = sites[0].longitude + 'x' + sites[0].latitude;
-	const t = store.get('path').replace(/\//g, '-').replace(/-(\d+)$/, (match, hour) => 'T' + (Math.round(hour / 3) * 3) + ':00:00Z');
+	const t = store.get('path').replace(/\//g, '-').replace(/-(\d+)$/, (match, hour) => 'T' + String(Math.round(hour / 3) * 3).padStart(2, 0) + ':00:00Z');
 	let s = sites[0].name;
 	if (sites.length > 1) {
 		const words = {};

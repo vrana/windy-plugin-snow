@@ -14,7 +14,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -268,7 +268,7 @@ function () {
     tooltips.push(extra.join(' '));
     var p = sites[0].longitude + 'x' + sites[0].latitude;
     var t = store.get('path').replace(/\//g, '-').replace(/-(\d+)$/, function (match, hour) {
-      return 'T' + Math.round(hour / 3) * 3 + ':00:00Z';
+      return 'T' + String(Math.round(hour / 3) * 3).padStart(2, 0) + ':00:00Z';
     });
     var s = sites[0].name;
 
