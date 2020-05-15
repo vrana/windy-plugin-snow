@@ -14,7 +14,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.3.3",
+  "version": "1.3.4",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -138,7 +138,8 @@ function () {
           }).join('\n')
         }).addTo(map);
         marker.bindPopup(getTooltip(sites[latLon]), {
-          minWidth: 170
+          minWidth: 200,
+          maxWidth: 400
         });
         marker.on('popupopen', function () {
           activeMarker = marker;
@@ -250,17 +251,8 @@ function () {
     if (wind) {
       var colors = ['green', 'orange', 'red'];
       var windHeight = ' ' + (store.get('level') == 'surface' || store.get('overlay') != 'wind' ? translate('on surface', 'na zemi') : translate('at', 'v') + ' ' + store.get('level'));
-      extra.push('<a' + getWindAttrs(sites[0].latitude, sites[0].longitude) + '>' + '<span style="color: ' + colors[getDirIndex(sites, wind.dir)] + ';" title="' + translate('wind direction', 'směr větru') + windHeight + '">' + '<span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '°</span>' + ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';" title="' + translate('wind speed', 'rychlost větru') + windHeight + (data && data.gust != null ? '&#10;' + translate('gusts', 'nárazy') + ' ' + translate('on surface', 'na zemi') + ': ' + data.gust.toFixed(1) + ' m/s' : '') + '">' + wind.wind.toFixed(1) + ' m/s</span>' + '</a>');
+      extra.push('<a' + getWindAttrs(sites[0].latitude, sites[0].longitude) + '>' + '<span style="color: ' + colors[getDirIndex(sites, wind.dir)] + ';" title="' + translate('wind direction', 'směr větru') + windHeight + '">' + '<span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '°</span>' + ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';" title="' + translate('wind speed', 'rychlost větru') + windHeight + '">' + wind.wind.toFixed(1) + ' m/s' + (data && data.gust != null ? ',</span> <span style="color: ' + colors[getSpeedIndex(data.gust - 4)] + ';" title="' + translate('gusts on surface', 'nárazy na zemi') + '">G: ' + data.gust.toFixed(1) + ' m/s' : '') + '</span></a>');
     }
-
-    var meteoLinks = sites[0].link_meteo.match(/https?:\/\/\S+/g);
-    meteoLinks && meteoLinks.forEach(function (link) {
-      return extra.push('<a href="' + link + '" class="iconfont" style="vertical-align: middle;" title="' + translate('weather station', 'meteostanice') + '" target="_blank"></a>');
-    });
-    var webcamLinks = sites[0].link_webcam.match(/https?:\/\/\S+/g);
-    webcamLinks && webcamLinks.forEach(function (link) {
-      return extra.push('<a href="' + link + '" class="iconfont" style="vertical-align: middle;" title="' + translate('webcam', 'webkamera') + '" target="_blank">l</a>');
-    });
 
     if (data) {
       var sunrise = new Date(forecast.header.sunrise).getHours();
@@ -303,8 +295,18 @@ function () {
       })();
     }
 
-    tooltips.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">' + translate('Possible climb', 'Dostupy') + '</span>:' + ' <a href="http://www.xcmeteo.net/?p=' + p + ',t=' + t + ',s=' + encodeURIComponent(s) + '" target="_blank" title="' + translate('source', 'zdroj') + ': Windy ' + getModel() + '">' + (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-') + '</a>');
-    return tooltips.join('<br>');
+    extra = [];
+    var meteoLinks = sites[0].link_meteo.match(/https?:\/\/\S+/g);
+    meteoLinks && meteoLinks.forEach(function (link) {
+      return extra.push('<a href="' + link + '" class="iconfont" style="vertical-align: middle;" title="' + translate('weather station', 'meteostanice') + '" target="_blank"></a>');
+    });
+    var webcamLinks = sites[0].link_webcam.match(/https?:\/\/\S+/g);
+    webcamLinks && webcamLinks.forEach(function (link) {
+      return extra.push('<a href="' + link + '" class="iconfont" style="vertical-align: middle;" title="' + translate('webcam', 'webkamera') + '" target="_blank">l</a>');
+    });
+    extra.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">' + translate('Possible climb', 'Dostupy') + '</span>:' + ' <a href="http://www.xcmeteo.net/?p=' + p + ',t=' + t + ',s=' + encodeURIComponent(s) + '" target="_blank" title="' + translate('source', 'zdroj') + ': Windy ' + getModel() + '">' + (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-') + '</a>');
+    tooltips.push(extra.join(' '));
+    return '<div style="white-space: nowrap;">' + tooltips.join('<br>') + '</div>';
   }
 
   function getForecast(forecast) {

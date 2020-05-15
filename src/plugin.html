@@ -126,7 +126,7 @@ function init() {
 			const icon = newIcon(getIconUrl(sites[latLon], null), map.getZoom());
 			const marker = L.marker(getLatLon(latLon), {icon, riseOnHover: true, title: sites[latLon].map(site => site.name).join('\n')}).addTo(map);
 			// Leaflet supports binding function but that function is called only the first time the popup is opened.
-			marker.bindPopup(getTooltip(sites[latLon]), {minWidth: 170});
+			marker.bindPopup(getTooltip(sites[latLon]), {minWidth: 200, maxWidth: 400});
 			// Leaflet tooltips close when you hover the tooltip and they work poorly on mobile. Use popup instead.
 			marker.on('popupopen', () => {
 				activeMarker = marker;
@@ -239,7 +239,7 @@ function getTooltip(sites) {
 		;
 	});
 	const data = forecast && !/FAKE/.test(forecast.header.note) && getForecast(forecast);
-	const extra = [];
+	let extra = [];
 	if (wind) {
 		const colors = ['green', 'orange', 'red'];
 		// TODO: Get the high wind from airData for the other overlays.
@@ -247,15 +247,10 @@ function getTooltip(sites) {
 		extra.push('<a' + getWindAttrs(sites[0].latitude, sites[0].longitude) + '>'
 			+ '<span style="color: ' + colors[getDirIndex(sites, wind.dir)] + ';" title="' + translate('wind direction', 'směr větru') + windHeight + '">'
 			+ '<span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '°</span>'
-			+ ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';" title="' + translate('wind speed', 'rychlost větru') + windHeight
-			+ (data && data.gust != null ? '&#10;' + translate('gusts', 'nárazy') + ' ' + translate('on surface', 'na zemi') + ': ' + data.gust.toFixed(1) + ' m/s' : '') + '">'
-			+ wind.wind.toFixed(1) + ' m/s</span>'
-			+ '</a>');
+			+ ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';" title="' + translate('wind speed', 'rychlost větru') + windHeight + '">' + wind.wind.toFixed(1) + ' m/s'
+			+ (data && data.gust != null ? ',</span> <span style="color: ' + colors[getSpeedIndex(data.gust - 4)] + ';" title="' + translate('gusts on surface', 'nárazy na zemi') + '">G: ' + data.gust.toFixed(1) + ' m/s' : '')
+			+ '</span></a>');
 	}
-	const meteoLinks = sites[0].link_meteo.match(/https?:\/\/\S+/g);
-	meteoLinks && meteoLinks.forEach(link => extra.push('<a href="' + link + '" class="iconfont" style="vertical-align: middle;" title="' + translate('weather station', 'meteostanice') + '" target="_blank"></a>'));
-	const webcamLinks = sites[0].link_webcam.match(/https?:\/\/\S+/g);
-	webcamLinks && webcamLinks.forEach(link => extra.push('<a href="' + link + '" class="iconfont" style="vertical-align: middle;" title="' + translate('webcam', 'webkamera') + '" target="_blank">l</a>'));
 	if (data) {
 		// We don't have data about twilight, use sunrise and sunset instead.
 		const sunrise = new Date(forecast.header.sunrise).getHours();
@@ -278,13 +273,19 @@ function getTooltip(sites) {
 		const names = Object.keys(words).filter(word => words[word] == sites.length);
 		s = names.length ? names.join(' ') : s;
 	}
-	tooltips.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">'
+	extra = [];
+	const meteoLinks = sites[0].link_meteo.match(/https?:\/\/\S+/g);
+	meteoLinks && meteoLinks.forEach(link => extra.push('<a href="' + link + '" class="iconfont" style="vertical-align: middle;" title="' + translate('weather station', 'meteostanice') + '" target="_blank"></a>'));
+	const webcamLinks = sites[0].link_webcam.match(/https?:\/\/\S+/g);
+	webcamLinks && webcamLinks.forEach(link => extra.push('<a href="' + link + '" class="iconfont" style="vertical-align: middle;" title="' + translate('webcam', 'webkamera') + '" target="_blank">l</a>'));
+	extra.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">'
 		+ translate('Possible climb', 'Dostupy') + '</span>:'
 		+ ' <a href="http://www.xcmeteo.net/?p=' + p + ',t=' + t + ',s=' + encodeURIComponent(s) + '" target="_blank" title="' + translate('source', 'zdroj') + ': Windy ' + getModel() + '">'
 		+ (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-')
 		+ '</a>'
 	);
-	return tooltips.join('<br>');
+	tooltips.push(extra.join(' '));
+	return '<div style="white-space: nowrap;">' + tooltips.join('<br>') + '</div>';
 }
 
 /** Gets forecast for current time.
