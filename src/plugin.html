@@ -298,7 +298,7 @@ function getForecast(forecast) {
 	const day = forecast.data[path.replace(/-\d+$/, '')] || [];
 	let last = null;
 	for (const data of day) {
-		// The granularity of forecast is 3 hours but GFS can be stepped by 1 hour. Use last non-future forecast (e.g. 21:00 forecast for 23:00 path).
+		// Use last non-future forecast (e.g. 21:00 forecast for 23:00 path with 3 hours granularity).
 		if (data.hour > path.replace(/.*-0?/, '')) {
 			break;
 		}
