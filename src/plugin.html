@@ -274,9 +274,9 @@ function getTooltip(sites) {
 		s = names.length ? names.join(' ') : s;
 	}
 	extra = [];
-	const meteoLinks = sites[0].link_meteo.match(/https?:\/\/\S+/g);
+	const meteoLinks = sites[0].link_meteo.match(/https?:\/\/\S+\w/g);
 	meteoLinks && meteoLinks.forEach(link => extra.push('<a href="' + link + '" class="iconfont" style="vertical-align: middle;" title="' + translate('weather station', 'meteostanice') + '" target="_blank"></a>'));
-	const webcamLinks = sites[0].link_webcam.match(/https?:\/\/\S+/g);
+	const webcamLinks = sites[0].link_webcam.match(/https?:\/\/\S+\w/g);
 	webcamLinks && webcamLinks.forEach(link => extra.push('<a href="' + link + '" class="iconfont" style="vertical-align: middle;" title="' + translate('webcam', 'webkamera') + '" target="_blank">l</a>'));
 	extra.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">'
 		+ translate('Possible climb', 'Dostupy') + '</span>:'

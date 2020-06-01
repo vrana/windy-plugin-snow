@@ -14,7 +14,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.3.4",
+  "version": "1.3.5",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -296,11 +296,11 @@ function () {
     }
 
     extra = [];
-    var meteoLinks = sites[0].link_meteo.match(/https?:\/\/\S+/g);
+    var meteoLinks = sites[0].link_meteo.match(/https?:\/\/\S+\w/g);
     meteoLinks && meteoLinks.forEach(function (link) {
       return extra.push('<a href="' + link + '" class="iconfont" style="vertical-align: middle;" title="' + translate('weather station', 'meteostanice') + '" target="_blank"></a>');
     });
-    var webcamLinks = sites[0].link_webcam.match(/https?:\/\/\S+/g);
+    var webcamLinks = sites[0].link_webcam.match(/https?:\/\/\S+\w/g);
     webcamLinks && webcamLinks.forEach(function (link) {
       return extra.push('<a href="' + link + '" class="iconfont" style="vertical-align: middle;" title="' + translate('webcam', 'webkamera') + '" target="_blank">l</a>');
     });
