@@ -296,14 +296,16 @@ function () {
     }
 
     extra = [];
-    var meteoLinks = sites[0].link_meteo.match(/https?:\/\/\S+\w/g);
-    meteoLinks && meteoLinks.forEach(function (link) {
-      return extra.push('<a href="' + link + '" class="iconfont" style="vertical-align: middle;" title="' + translate('weather station', 'meteostanice') + '" target="_blank"></a>');
-    });
-    var webcamLinks = sites[0].link_webcam.match(/https?:\/\/\S+\w/g);
-    webcamLinks && webcamLinks.forEach(function (link) {
-      return extra.push('<a href="' + link + '" class="iconfont" style="vertical-align: middle;" title="' + translate('webcam', 'webkamera') + '" target="_blank">l</a>');
-    });
+
+    function addLinks(links, title, icon) {
+      var meteoLinks = links.matchAll(/(https?:\/\/\S+\w)( \([^()]+\))?/g);
+      Array.from(meteoLinks).forEach(function (link) {
+        return extra.push('<a href="' + html(link[1]) + '" class="iconfont" style="vertical-align: middle;" title="' + title + html(link[2] || '') + '" target="_blank">' + icon + '</a>');
+      });
+    }
+
+    addLinks(sites[0].link_meteo, translate('weather station', 'meteostanice'), '');
+    addLinks(sites[0].link_webcam, translate('webcam', 'webkamera'), 'l');
     extra.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">' + translate('Possible climb', 'Dostupy') + '</span>:' + ' <a href="http://www.xcmeteo.net/?p=' + p + ',t=' + t + ',s=' + encodeURIComponent(s) + '" target="_blank" title="' + translate('source', 'zdroj') + ': Windy ' + getModel() + '">' + (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-') + '</a>');
     tooltips.push(extra.join(' '));
     return '<div style="white-space: nowrap;">' + tooltips.join('<br>') + '</div>';
@@ -515,6 +517,6 @@ function () {
   }
 
   function html(text) {
-    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   }
 });
