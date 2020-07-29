@@ -59,6 +59,7 @@ this.onopen = function () {
  *   longitude: number,
  *   name: string,
  *   url: string,
+ *   altitude: number,
  *   superelevation: number,
  *   flying_status: number,
  *   active: number,
@@ -123,7 +124,7 @@ function init() {
 		}
 
 		for (const latLon in sites) {
-			const icon = newIcon(getIconUrl(sites[latLon], null), map.getZoom());
+			const icon = newIcon(getIconUrl(sites[latLon], null), map.getZoom(), sites[latLon]);
 			const marker = L.marker(getLatLon(latLon), {icon, riseOnHover: true, title: sites[latLon].map(site => site.name).join('\n')}).addTo(map);
 			// Leaflet supports binding function but that function is called only the first time the popup is opened.
 			marker.bindPopup(getTooltip(sites[latLon]), {minWidth: 200, maxWidth: 400});
@@ -163,7 +164,7 @@ function redraw() {
 					} else if (!loadForecast(latLon)) {
 						// Preserve the old icon, just resize it.
 						const url = markers[latLon]._icon.src;
-						markers[latLon].setIcon(newIcon(url, map.getZoom()));
+						markers[latLon].setIcon(newIcon(url, map.getZoom(), sites[latLon]));
 						continue;
 					}
 				}
@@ -211,13 +212,13 @@ function getWind(latLon) {
  */
 function updateMarker(latLon) {
 	const wind = getWind(latLon);
-	markers[latLon].setIcon(newIcon(getIconUrl(sites[latLon], wind), map.getZoom()));
+	markers[latLon].setIcon(newIcon(getIconUrl(sites[latLon], wind), map.getZoom(), sites[latLon]));
 	markers[latLon].setOpacity(getColor(sites[latLon], wind) != 'red' ? 1 : .4);
 	markers[latLon].setPopupContent(getTooltip(sites[latLon]));
 }
 
 /** Gets tooltip with site names, wind info and forecast.
- * @param {Array<{latitude: number, longitude: number, name: string, url: string, superelevation: number}>} sites
+ * @param {Array<Site>} sites
  * @return {string} HTML.
  */
 function getTooltip(sites) {
@@ -401,10 +402,14 @@ function isDirIn(dir, from, to, tolerance = 0) {
 /** Creates new icon.
  * @param {string} url
  * @param {number} zoom
+ * @param {Site} site
  * @return {L.Icon}
  */
-function newIcon(url, zoom) {
-	const size = zoom > 9 ? 38 : zoom > 6 ? 19 : zoom > 4 ? 9 : 5;
+function newIcon(url, zoom, site) {
+	let size = zoom > 9 ? 38 : zoom > 6 ? 19 : zoom > 4 ? 9 : 5;
+	if (site[0].superelevation < 100) {
+		size *= 3/4;
+	}
 	return L.icon({
 		iconUrl: url,
 		iconSize: [size, size],

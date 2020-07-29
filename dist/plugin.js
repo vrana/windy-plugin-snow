@@ -14,7 +14,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.3.5",
+  "version": "1.3.6",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -129,7 +129,7 @@ function () {
       }
 
       var _loop = function _loop(latLon) {
-        var icon = newIcon(getIconUrl(sites[latLon], null), map.getZoom());
+        var icon = newIcon(getIconUrl(sites[latLon], null), map.getZoom(), sites[latLon]);
         var marker = L.marker(getLatLon(latLon), {
           icon: icon,
           riseOnHover: true,
@@ -182,7 +182,7 @@ function () {
               winds[getWindsKey(latLon)] = data && utils.wind2obj(data);
             } else if (!loadForecast(latLon)) {
               var url = markers[latLon]._icon.src;
-              markers[latLon].setIcon(newIcon(url, map.getZoom()));
+              markers[latLon].setIcon(newIcon(url, map.getZoom(), sites[latLon]));
               continue;
             }
           }
@@ -228,7 +228,7 @@ function () {
 
   function updateMarker(latLon) {
     var wind = getWind(latLon);
-    markers[latLon].setIcon(newIcon(getIconUrl(sites[latLon], wind), map.getZoom()));
+    markers[latLon].setIcon(newIcon(getIconUrl(sites[latLon], wind), map.getZoom(), sites[latLon]));
     markers[latLon].setOpacity(getColor(sites[latLon], wind) != 'red' ? 1 : .4);
     markers[latLon].setPopupContent(getTooltip(sites[latLon]));
   }
@@ -426,8 +426,13 @@ function () {
     return dir >= from - tolerance && dir <= to + tolerance || dir <= to + tolerance - 360 || dir >= from - tolerance + 360;
   }
 
-  function newIcon(url, zoom) {
+  function newIcon(url, zoom, site) {
     var size = zoom > 9 ? 38 : zoom > 6 ? 19 : zoom > 4 ? 9 : 5;
+
+    if (site[0].superelevation < 100) {
+      size *= 3 / 4;
+    }
+
     return L.icon({
       iconUrl: url,
       iconSize: [size, size],
