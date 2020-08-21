@@ -14,7 +14,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.3.6",
+  "version": "1.3.7",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -134,7 +134,7 @@ function () {
           icon: icon,
           riseOnHover: true,
           title: sites[latLon].map(function (site) {
-            return site.name;
+            return site.name + ' (' + site.superelevation + ' m)';
           }).join('\n')
         }).addTo(map);
         marker.bindPopup(getTooltip(sites[latLon]), {
