@@ -14,7 +14,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.3.7",
+  "version": "1.3.8",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -33,7 +33,7 @@ function () {
 
   var store = W.require('store');
 
-  var pluginDataLoader = W.require('pluginDataLoader');
+  var pluginDataLoader = W.require('@plugins/plugin-data-loader');
 
   var map = W.require('map');
 
