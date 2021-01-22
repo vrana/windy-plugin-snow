@@ -301,8 +301,8 @@ function getTooltip(sites) {
  * @return {?Forecast} Null if there's no forecast.
  */
 function getForecast(forecast) {
-	// The format of 'path' is YYYY/MM/DD/HH.
-	const path = store.get('path').replace(/\//g, '-');
+	// The format of 'path' is YYYY/MM/DD/HH (ecmwf) or YYYYMMDDHH (iconEu).
+	const path = store.get('path').replace(/(\d{4})\/?(\d{2})\/?(\d{2})\/?(\d{2})/, '$1-$2-$3-$4');
 	const day = forecast.data[path.replace(/-\d+$/, '')] || [];
 	let last = null;
 	for (const data of day) {

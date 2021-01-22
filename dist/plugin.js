@@ -14,7 +14,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -314,7 +314,7 @@ function () {
   }
 
   function getForecast(forecast) {
-    var path = store.get('path').replace(/\//g, '-');
+    var path = store.get('path').replace(/(\d{4})\/?(\d{2})\/?(\d{2})\/?(\d{2})/, '$1-$2-$3-$4');
     var day = forecast.data[path.replace(/-\d+$/, '')] || [];
     var last = null;
 
