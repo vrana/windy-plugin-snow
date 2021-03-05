@@ -14,7 +14,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -57,8 +57,8 @@ function () {
     return ' href="' + site.url + '" target="_blank"';
   }
 
-  function getApiRoot() {
-    return 'https://www.paragliding-mapa.cz/';
+  function getApiUrl() {
+    return 'https://www.paragliding-mapa.cz/api/v0.1/launch?locale=' + translate('en', 'cs');
   }
 
   function getLaunchExtra(site) {
@@ -99,7 +99,7 @@ function () {
       return;
     }
 
-    fetch(getApiRoot() + 'api/v0.1/launch?locale=' + translate('en', 'cs')).then(function (response) {
+    fetch(getApiUrl()).then(function (response) {
       return response.json();
     }).then(function (launch) {
       var _iterator = _createForOfIteratorHelper(launch.data),
@@ -243,7 +243,7 @@ function () {
       wind = wind || getWind(latLon);
       forecast = forecast || forecasts[model] && forecasts[model][latLon];
       airData = airData || airDatas[model] && airDatas[model][latLon];
-      return '<b style="font-size: 1.25em;"><a' + getLaunchAttrs(site) + (isSiteForbidden(site) ? ' style="color: red;" title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') + '>' + html(site.name) + '</a></b>' + ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' + ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)' + (site.parkings && site.parkings.length ? site.parkings.map(function (parking) {
+      return '<b style="font-size: 1.25em;"><a' + getLaunchAttrs(site) + (isSiteForbidden(site) ? ' style="color: red;" title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') + '>' + html(site.name) + '</a></b>' + (site.altitude ? ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' : '') + ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)' + (site.parkings && site.parkings.length ? site.parkings.map(function (parking) {
         return ' <a href="https://www.google.com/maps/dir/?api=1&destination=' + parking.latitude + ',' + parking.longitude + '" target="_blank"><img src="https://www.google.com/images/branding/product/ico/maps15_bnuw3a_32dp.ico" width="12" height="12" alt="" title="' + translate('parking', 'parkoviště') + html(parking.name == site.name && site.parkings.length == 1 ? '' : ' ' + parking.name) + '" style="vertical-align: middle;"></a>';
       }).join('') : ' <a href="https://www.google.com/maps/dir/?api=1&destination=' + site.latitude + ',' + site.longitude + '" target="_blank"><img src="https://www.google.com/images/branding/product/ico/maps15_bnuw3a_32dp.ico" width="12" height="12" alt="" title="' + translate('takeoff', 'startovačka') + '" style="vertical-align: middle;"></a>') + ' <a href="https://mapy.cz/turisticka?source=coor&id=' + site.longitude + ',' + site.latitude + '" target="_blank"><img src="https://mapy.cz/img/favicon/favicon.ico" width="12" height="12" alt="" title="' + translate('takeoff', 'startovačka') + '" style="vertical-align: middle;"></a>' + getLaunchExtra(site);
     });
@@ -264,10 +264,17 @@ function () {
     }
 
     tooltips.push(extra.join(' '));
-    var p = sites[0].longitude + 'x' + sites[0].latitude;
-    var t = store.get('path').replace(/\//g, '-').replace(/-(\d+)$/, function (match, hour) {
-      return 'T' + String(Math.round(hour / 3) * 3).padStart(2, 0) + ':00:00Z';
-    });
+    extra = [];
+
+    function addLinks(links, title, icon) {
+      var meteoLinks = (links || '').matchAll(/(https?:\/\/\S+\w)( \([^()]+\))?/g);
+      Array.from(meteoLinks).forEach(function (link) {
+        return extra.push('<a href="' + html(link[1]) + '" class="iconfont" style="vertical-align: middle;" title="' + title + html(link[2] || '') + '" target="_blank">' + icon + '</a>');
+      });
+    }
+
+    addLinks(sites[0].link_meteo, translate('weather station', 'meteostanice'), '');
+    addLinks(sites[0].link_webcam, translate('webcam', 'webkamera'), 'l');
     var s = sites[0].name;
 
     if (sites.length > 1) {
@@ -297,17 +304,10 @@ function () {
       })();
     }
 
-    extra = [];
-
-    function addLinks(links, title, icon) {
-      var meteoLinks = links.matchAll(/(https?:\/\/\S+\w)( \([^()]+\))?/g);
-      Array.from(meteoLinks).forEach(function (link) {
-        return extra.push('<a href="' + html(link[1]) + '" class="iconfont" style="vertical-align: middle;" title="' + title + html(link[2] || '') + '" target="_blank">' + icon + '</a>');
-      });
-    }
-
-    addLinks(sites[0].link_meteo, translate('weather station', 'meteostanice'), '');
-    addLinks(sites[0].link_webcam, translate('webcam', 'webkamera'), 'l');
+    var p = sites[0].longitude + 'x' + sites[0].latitude;
+    var t = store.get('path').replace(/(\d{4})\/?(\d{2})\/?(\d{2})\/?(\d+)/, function (match, year, month, day, hour) {
+      return year + '-' + month + '-' + day + 'T' + String(Math.round(hour / 3) * 3).padStart(2, 0) + ':00:00Z';
+    });
     extra.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">' + translate('Possible climb', 'Dostupy') + '</span>:' + ' <a href="http://www.xcmeteo.net/?p=' + p + ',t=' + t + ',s=' + encodeURIComponent(s) + '" target="_blank" title="' + translate('source', 'zdroj') + ': Windy ' + getModel() + '">' + (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-') + '</a>');
     tooltips.push(extra.join(' '));
     return '<div style="white-space: nowrap;">' + tooltips.join('<br>') + '</div>';
