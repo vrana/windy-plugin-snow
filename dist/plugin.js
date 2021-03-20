@@ -133,7 +133,7 @@ function () {
         var marker = L.marker(getLatLon(latLon), {
           icon: icon,
           riseOnHover: true,
-          title: sites[latLon].map(function (site) {
+          title: groupByUrl(sites[latLon]).map(function (site) {
             return site.name + ' (' + site.superelevation + ' m)';
           }).join('\n')
         }).addTo(map);
@@ -233,12 +233,18 @@ function () {
     markers[latLon].setPopupContent(getTooltip(sites[latLon]));
   }
 
+  function groupByUrl(sites) {
+    return Object.values(Object.fromEntries(sites.map(function (site) {
+      return [site.url, site];
+    })));
+  }
+
   function getTooltip(sites) {
     var wind;
     var forecast;
     var airData;
     var model = getModel();
-    var tooltips = sites.map(function (site) {
+    var tooltips = groupByUrl(sites).map(function (site) {
       var latLon = site.latitude + ' ' + site.longitude;
       wind = wind || getWind(latLon);
       forecast = forecast || forecasts[model] && forecasts[model][latLon];

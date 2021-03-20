@@ -125,7 +125,7 @@ function init() {
 
 		for (const latLon in sites) {
 			const icon = newIcon(getIconUrl(sites[latLon], null), map.getZoom(), sites[latLon]);
-			const marker = L.marker(getLatLon(latLon), {icon, riseOnHover: true, title: sites[latLon].map(site => site.name + ' (' + site.superelevation + ' m)').join('\n')}).addTo(map);
+			const marker = L.marker(getLatLon(latLon), {icon, riseOnHover: true, title: groupByUrl(sites[latLon]).map(site => site.name + ' (' + site.superelevation + ' m)').join('\n')}).addTo(map);
 			// Leaflet supports binding function but that function is called only the first time the popup is opened.
 			marker.bindPopup(getTooltip(sites[latLon]), {minWidth: 200, maxWidth: 400});
 			// Leaflet tooltips close when you hover the tooltip and they work poorly on mobile. Use popup instead.
@@ -217,6 +217,14 @@ function updateMarker(latLon) {
 	markers[latLon].setPopupContent(getTooltip(sites[latLon]));
 }
 
+/** Group sites with different usable winds but same url (useful from XContest takeoffs).
+ * @param {Array<Site>} sites
+ * @return {Array<Site>}
+ */
+function groupByUrl(sites) {
+	return Object.values(Object.fromEntries(sites.map(site => [site.url, site])));
+}
+
 /** Gets tooltip with site names, wind info and forecast.
  * @param {Array<Site>} sites
  * @return {string} HTML.
@@ -226,7 +234,7 @@ function getTooltip(sites) {
 	let forecast;
 	let airData;
 	const model = getModel();
-	const tooltips = sites.map(site => {
+	const tooltips = groupByUrl(sites).map(site => {
 		// Site latLon might be slightly different from wind latLon due to a utils.isNear call. However one will eventually match.
 		const latLon = site.latitude + ' ' + site.longitude;
 		wind = wind || getWind(latLon);
