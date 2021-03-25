@@ -50,7 +50,7 @@ function () {
 
   function getModel() {
     var product = store.get('product');
-    return product == 'gfs' || product == 'iconEu' ? product : 'ecmwf';
+    return ['gfs', 'icon', 'iconEu'].indexOf(product) != -1 ? product : 'ecmwf';
   }
 
   function getLaunchAttrs(site) {
