@@ -102,6 +102,8 @@ function () {
     fetch(getApiUrl()).then(function (response) {
       return response.json();
     }).then(function (launch) {
+      var sitesLatLon = {};
+
       var _iterator = _createForOfIteratorHelper(launch.data),
           _step;
 
@@ -109,18 +111,38 @@ function () {
         launchLoop: for (_iterator.s(); !(_step = _iterator.n()).done;) {
           var site = _step.value;
 
-          for (var _latLon in sites) {
-            if (utils.isNear(getLatLon(_latLon), {
-              lat: site.latitude,
-              lon: site.longitude
-            })) {
-              sites[_latLon].push(site);
+          for (var lat = Math.round(site.latitude - .5); lat <= Math.round(site.latitude + .5); lat++) {
+            for (var lon = Math.round(site.longitude - .5); lon <= Math.round(site.longitude + .5); lon++) {
+              if (sitesLatLon[lat + ' ' + lon]) {
+                var _iterator2 = _createForOfIteratorHelper(sitesLatLon[lat + ' ' + lon]),
+                    _step2;
 
-              continue launchLoop;
+                try {
+                  for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
+                    var _latLon = _step2.value;
+
+                    if (utils.isNear(getLatLon(_latLon), {
+                      lat: site.latitude,
+                      lon: site.longitude
+                    })) {
+                      sites[_latLon].push(site);
+
+                      continue launchLoop;
+                    }
+                  }
+                } catch (err) {
+                  _iterator2.e(err);
+                } finally {
+                  _iterator2.f();
+                }
+              }
             }
           }
 
           sites[site.latitude + ' ' + site.longitude] = [site];
+          var latLonRounded = Math.round(site.latitude) + ' ' + Math.round(site.longitude);
+          sitesLatLon[latLonRounded] = sitesLatLon[latLonRounded] || [];
+          sitesLatLon[latLonRounded].push(site.latitude + ' ' + site.longitude);
         }
       } catch (err) {
         _iterator.e(err);
@@ -287,20 +309,20 @@ function () {
       (function () {
         var words = {};
 
-        var _iterator2 = _createForOfIteratorHelper(sites),
-            _step2;
+        var _iterator3 = _createForOfIteratorHelper(sites),
+            _step3;
 
         try {
-          for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
-            var site = _step2.value;
+          for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
+            var site = _step3.value;
             site.name.split(/[- ,.]+/).forEach(function (word) {
               return words[word] = (words[word] || 0) + 1;
             });
           }
         } catch (err) {
-          _iterator2.e(err);
+          _iterator3.e(err);
         } finally {
-          _iterator2.f();
+          _iterator3.f();
         }
 
         var names = Object.keys(words).filter(function (word) {
@@ -324,12 +346,12 @@ function () {
     var day = forecast.data[path.replace(/-\d+$/, '')] || [];
     var last = null;
 
-    var _iterator3 = _createForOfIteratorHelper(day),
-        _step3;
+    var _iterator4 = _createForOfIteratorHelper(day),
+        _step4;
 
     try {
-      for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
-        var data = _step3.value;
+      for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
+        var data = _step4.value;
 
         if (data.hour > path.replace(/.*-0?/, '')) {
           break;
@@ -338,9 +360,9 @@ function () {
         last = data;
       }
     } catch (err) {
-      _iterator3.e(err);
+      _iterator4.e(err);
     } finally {
-      _iterator3.f();
+      _iterator4.f();
     }
 
     return last;
@@ -349,19 +371,19 @@ function () {
   function getIconUrl(sites, wind) {
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38">\n';
 
-    var _iterator4 = _createForOfIteratorHelper(sites),
-        _step4;
+    var _iterator5 = _createForOfIteratorHelper(sites),
+        _step5;
 
     try {
-      for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
-        var site = _step4.value;
+      for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
+        var site = _step5.value;
         var color = getColor([site], wind);
         svg += (site.wind_usable_to - site.wind_usable_from >= 359 ? '<circle cx="19" cy="19" r="18" fill="' + color + '"/>' : getCircleSlice(site.wind_usable_from - 90, site.wind_usable_to - 90, 38, color)) + '\n';
       }
     } catch (err) {
-      _iterator4.e(err);
+      _iterator5.e(err);
     } finally {
-      _iterator4.f();
+      _iterator5.f();
     }
 
     svg += '<circle cx="19" cy="19" r="18" stroke="#333" stroke-width="2" fill-opacity="0"/>\n</svg>';
@@ -399,12 +421,12 @@ function () {
   function getDirIndex(sites, dir) {
     var result = 2;
 
-    var _iterator5 = _createForOfIteratorHelper(sites),
-        _step5;
+    var _iterator6 = _createForOfIteratorHelper(sites),
+        _step6;
 
     try {
-      for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
-        var site = _step5.value;
+      for (_iterator6.s(); !(_step6 = _iterator6.n()).done;) {
+        var site = _step6.value;
 
         if (isSiteForbidden(site)) {
           continue;
@@ -420,9 +442,9 @@ function () {
         }
       }
     } catch (err) {
-      _iterator5.e(err);
+      _iterator6.e(err);
     } finally {
-      _iterator5.f();
+      _iterator6.f();
     }
 
     return result;

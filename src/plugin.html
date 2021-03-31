@@ -31,6 +31,7 @@ function getLaunchAttrs(site) {
 function getApiUrl() {
 	return 'https://www.paragliding-mapa.cz/api/v0.1/launch?locale=' + translate('en', 'cs');
 //~ 	return 'https://pg.vrana.cz/xcontest/takeoffs.php?season=2021&country=CZ';
+//~ 	return 'https://pg.vrana.cz/xcontest/dhv.php';
 }
 
 function getLaunchExtra(site) {
@@ -112,16 +113,26 @@ function init() {
 		return;
 	}
 	fetch(getApiUrl()).then(response => response.json()).then(launch => {
+		const sitesLatLon = {}; // latLonRounded: [latLon]
 		launchLoop: for (const site of launch.data) {
-			for (const latLon in sites) {
-				if (utils.isNear(getLatLon(latLon), {lat: site.latitude, lon: site.longitude})) {
-					// Merge two sites if they are close to each other, e.g. Raná SZ and Raná JV.
-					sites[latLon].push(site);
-					continue launchLoop;
+			for (let lat = Math.round(site.latitude - .5); lat <= Math.round(site.latitude + .5); lat++) { // Search only in nearby squares.
+				for (let lon = Math.round(site.longitude - .5); lon <= Math.round(site.longitude + .5); lon++) {
+					if (sitesLatLon[lat + ' ' + lon]) {
+						for (const latLon of sitesLatLon[lat + ' ' + lon]) {
+							if (utils.isNear(getLatLon(latLon), {lat: site.latitude, lon: site.longitude})) {
+								// Merge two sites if they are close to each other, e.g. Raná SZ and Raná JV.
+								sites[latLon].push(site);
+								continue launchLoop;
+							}
+						}
+					}
 				}
 			}
 			// Store latitude and longitude in one key to avoid having sites[latitude] = sites[latitude] || {}.
 			sites[site.latitude + ' ' + site.longitude] = [site];
+			const latLonRounded = Math.round(site.latitude) + ' ' + Math.round(site.longitude);
+			sitesLatLon[latLonRounded] = sitesLatLon[latLonRounded] || [];
+			sitesLatLon[latLonRounded].push(site.latitude + ' ' + site.longitude);
 		}
 
 		for (const latLon in sites) {
