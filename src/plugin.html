@@ -30,6 +30,7 @@ function getLaunchAttrs(site) {
 
 function getApiUrl() {
 	return 'https://www.paragliding-mapa.cz/api/v0.1/launch?locale=' + translate('en', 'cs');
+//~ 	return 'https://pg.vrana.cz/xcontest/takeoffs.php?season=2021&country=CZ';
 }
 
 function getLaunchExtra(site) {
@@ -125,7 +126,7 @@ function init() {
 
 		for (const latLon in sites) {
 			const icon = newIcon(getIconUrl(sites[latLon], null), map.getZoom(), sites[latLon]);
-			const marker = L.marker(getLatLon(latLon), {icon, riseOnHover: true, title: groupByUrl(sites[latLon]).map(site => site.name + ' (' + site.superelevation + ' m)').join('\n')}).addTo(map);
+			const marker = L.marker(getLatLon(latLon), {icon, riseOnHover: true, title: groupByUrl(sites[latLon]).map(site => site.name + ' (' + site.superelevation + ' ' + (/takeoffs/.test(getApiUrl()) ? translate('flights', 'letů') : 'm') + ')').join('\n')}).addTo(map);
 			// Leaflet supports binding function but that function is called only the first time the popup is opened.
 			marker.bindPopup(getTooltip(sites[latLon]), {minWidth: 200, maxWidth: 400});
 			// Leaflet tooltips close when you hover the tooltip and they work poorly on mobile. Use popup instead.
@@ -243,7 +244,7 @@ function getTooltip(sites) {
 		return '<b style="font-size: 1.25em;"><a' + getLaunchAttrs(site)
 			+ (isSiteForbidden(site) ? ' style="color: red;" title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') + '>' + html(site.name) + '</a></b>'
 			+ (site.altitude ? ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' : '')
-			+ ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)'
+			+ ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' ' + (/takeoffs/.test(getApiUrl()) ? translate('flights', 'letů') : 'm') + '</span>)'
 			+ (site.parkings && site.parkings.length
 				? site.parkings.map(parking => ' <a href="https://www.google.com/maps/dir/?api=1&destination=' + parking.latitude + ',' + parking.longitude + '" target="_blank"><img src="https://www.google.com/images/branding/product/ico/maps15_bnuw3a_32dp.ico" width="12" height="12" alt="" title="' + translate('parking', 'parkoviště') + html(parking.name == site.name && site.parkings.length == 1 ? '' : ' ' + parking.name) + '" style="vertical-align: middle;"></a>').join('')
 				: ' <a href="https://www.google.com/maps/dir/?api=1&destination=' + site.latitude + ',' + site.longitude + '" target="_blank"><img src="https://www.google.com/images/branding/product/ico/maps15_bnuw3a_32dp.ico" width="12" height="12" alt="" title="' + translate('takeoff', 'startovačka') + '" style="vertical-align: middle;"></a>'
