@@ -156,7 +156,7 @@ function () {
           icon: icon,
           riseOnHover: true,
           title: groupByUrl(sites[latLon]).map(function (site) {
-            return site.name + ' (' + site.superelevation + ' ' + (/takeoffs/.test(getApiUrl()) ? translate('flights', 'letů') : 'm') + ')';
+            return site.name + (site.superelevation ? ' (' + site.superelevation + ' m)' : site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : '');
           }).join('\n')
         }).addTo(map);
         marker.bindPopup(getTooltip(sites[latLon]), {
@@ -271,7 +271,7 @@ function () {
       wind = wind || getWind(latLon);
       forecast = forecast || forecasts[model] && forecasts[model][latLon];
       airData = airData || airDatas[model] && airDatas[model][latLon];
-      return '<b style="font-size: 1.25em;"><a' + getLaunchAttrs(site) + (isSiteForbidden(site) ? ' style="color: red;" title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') + '>' + html(site.name) + '</a></b>' + (site.altitude ? ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' : '') + ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' ' + (/takeoffs/.test(getApiUrl()) ? translate('flights', 'letů') : 'm') + '</span>)' + (site.parkings && site.parkings.length ? site.parkings.map(function (parking) {
+      return '<b style="font-size: 1.25em;"><a' + getLaunchAttrs(site) + (isSiteForbidden(site) ? ' style="color: red;" title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') + '>' + html(site.name) + '</a></b>' + (site.altitude ? ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' : '') + (site.superelevation ? ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)' : site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : '') + (site.parkings && site.parkings.length ? site.parkings.map(function (parking) {
         return ' <a href="https://www.google.com/maps/dir/?api=1&destination=' + parking.latitude + ',' + parking.longitude + '" target="_blank"><img src="https://www.google.com/images/branding/product/ico/maps15_bnuw3a_32dp.ico" width="12" height="12" alt="" title="' + translate('parking', 'parkoviště') + html(parking.name == site.name && site.parkings.length == 1 ? '' : ' ' + parking.name) + '" style="vertical-align: middle;"></a>';
       }).join('') : ' <a href="https://www.google.com/maps/dir/?api=1&destination=' + site.latitude + ',' + site.longitude + '" target="_blank"><img src="https://www.google.com/images/branding/product/ico/maps15_bnuw3a_32dp.ico" width="12" height="12" alt="" title="' + translate('takeoff', 'startovačka') + '" style="vertical-align: middle;"></a>') + ' <a href="https://mapy.cz/turisticka?source=coor&id=' + site.longitude + ',' + site.latitude + '" target="_blank"><img src="https://mapy.cz/img/favicon/favicon.ico" width="12" height="12" alt="" title="' + translate('takeoff', 'startovačka') + '" style="vertical-align: middle;"></a>' + getLaunchExtra(site);
     });
@@ -459,7 +459,7 @@ function () {
   function newIcon(url, zoom, site) {
     var size = zoom > 9 ? 38 : zoom > 6 ? 19 : zoom > 4 ? 9 : 5;
 
-    if (site[0].superelevation < 100) {
+    if ((site[0].superelevation || site[0].flights) < 100) {
       size *= 3 / 4;
     }
 
