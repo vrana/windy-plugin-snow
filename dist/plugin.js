@@ -14,7 +14,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.4.4",
+  "version": "1.5.0",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -58,7 +58,7 @@ function () {
   }
 
   function getApiUrl() {
-    return 'https://www.paragliding-mapa.cz/api/v0.1/launch?locale=' + translate('en', 'cs');
+    return 'https://pg.vrana.cz/xcontest/pgmapa.php?locale=' + translate('en', 'cs');
   }
 
   function getLaunchExtra(site) {
@@ -251,7 +251,7 @@ function () {
   function updateMarker(latLon) {
     var wind = getWind(latLon);
     markers[latLon].setIcon(newIcon(getIconUrl(sites[latLon], wind), map.getZoom(), sites[latLon]));
-    markers[latLon].setOpacity(getColor(sites[latLon], wind) != 'red' ? 1 : .4);
+    markers[latLon].setOpacity(getColor(sites[latLon], wind) != 'red' ? 1 : .6);
     markers[latLon].setPopupContent(getTooltip(sites[latLon]));
   }
 
@@ -457,9 +457,13 @@ function () {
   }
 
   function newIcon(url, zoom, site) {
+    var _site$0$flights, _site$0$flights2;
+
     var size = zoom > 9 ? 38 : zoom > 6 ? 19 : zoom > 4 ? 9 : 5;
 
-    if ((site[0].superelevation || site[0].flights) < 100) {
+    if (((_site$0$flights = site[0].flights) !== null && _site$0$flights !== void 0 ? _site$0$flights : site[0].superelevation) < 10) {
+      size /= 2;
+    } else if (((_site$0$flights2 = site[0].flights) !== null && _site$0$flights2 !== void 0 ? _site$0$flights2 : site[0].superelevation) < 100) {
       size *= 3 / 4;
     }
 

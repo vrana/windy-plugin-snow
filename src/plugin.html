@@ -29,7 +29,8 @@ function getLaunchAttrs(site) {
 }
 
 function getApiUrl() {
-	return 'https://www.paragliding-mapa.cz/api/v0.1/launch?locale=' + translate('en', 'cs');
+	return 'https://pg.vrana.cz/xcontest/pgmapa.php?locale=' + translate('en', 'cs');
+//~ 	return 'https://www.paragliding-mapa.cz/api/v0.1/launch?locale=' + translate('en', 'cs');
 //~ 	return 'https://pg.vrana.cz/xcontest/takeoffs.php?season=2021&country=CZ';
 //~ 	return 'https://pg.vrana.cz/xcontest/dhv.php';
 }
@@ -230,7 +231,7 @@ function getWind(latLon) {
 function updateMarker(latLon) {
 	const wind = getWind(latLon);
 	markers[latLon].setIcon(newIcon(getIconUrl(sites[latLon], wind), map.getZoom(), sites[latLon]));
-	markers[latLon].setOpacity(getColor(sites[latLon], wind) != 'red' ? 1 : .4);
+	markers[latLon].setOpacity(getColor(sites[latLon], wind) != 'red' ? 1 : .6);
 	markers[latLon].setPopupContent(getTooltip(sites[latLon]));
 }
 
@@ -437,7 +438,9 @@ function isDirIn(dir, from, to, tolerance = 0) {
  */
 function newIcon(url, zoom, site) {
 	let size = zoom > 9 ? 38 : zoom > 6 ? 19 : zoom > 4 ? 9 : 5;
-	if ((site[0].superelevation || site[0].flights) < 100) {
+	if ((site[0].flights ?? site[0].superelevation) < 10) {
+		size /= 2;
+	} else if ((site[0].flights ?? site[0].superelevation) < 100) {
 		size *= 3/4;
 	}
 	return L.icon({
