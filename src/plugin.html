@@ -157,6 +157,7 @@ function init() {
 						// Cache: response has Expires: -1.
 						airDatas[model][latLon] = airData.data;
 						markers[latLon].setPopupContent(getTooltip(sites[latLon]));
+						updateSounding();
 					});
 				}
 			});
@@ -193,6 +194,7 @@ function redraw() {
 			activeMarker.fire('popupopen');
 		}
 	});
+	updateSounding();
 }
 
 /** Loads forecast if not already loaded.
@@ -245,7 +247,7 @@ function groupByUrl(sites) {
 
 /** Gets tooltip with site names, wind info and forecast.
  * @param {Array<Site>} sites
- * @return {string} HTML.
+ * @return {HTMLElement}
  */
 function getTooltip(sites) {
 	let wind;
@@ -314,13 +316,32 @@ function getTooltip(sites) {
 	const t = store.get('path').replace(/(\d{4})\/?(\d{2})\/?(\d{2})\/?(\d+)/, (match, year, month, day, hour) => year + '-' + month + '-' + day + 'T' + String(Math.round(hour / 3) * 3).padStart(2, 0) + ':00:00Z');
 	extra.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">'
 		+ translate('Possible climb', 'Dostupy') + '</span>:'
-		+ ' <a href="http://www.xcmeteo.net/?p=' + p + ',t=' + t + ',s=' + encodeURIComponent(s) + '" target="_blank" title="' + translate('source', 'zdroj') + ': Windy ' + getModel() + '">'
+		+ ' <a class="climb" href="http://www.xcmeteo.net/?p=' + p + ',t=' + t + ',s=' + encodeURIComponent(s) + '" target="_blank" title="' + translate('source', 'zdroj') + ': Windy ' + getModel() + '">'
 		+ (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-')
 		+ '</a>'
 	);
 	tooltips.push(extra.join(' '));
-	return '<div style="white-space: nowrap;">' + tooltips.join('<br>') + '</div>';
+	const div = document.createElement('div');
+	div.style.whiteSpace = 'nowrap';
+	div.innerHTML = tooltips.join('<br>');
+	if (airData) {
+		div.querySelector('.climb').onclick = () => {
+			// TODO: Use drop-down instead of popup.
+			const sounding = L.popup({maxWidth: 435}).setLatLng([sites[0].latitude, sites[0].longitude]).setContent(showSounding(airData));
+			map.addLayer(sounding);
+			updateSounding = () => {
+				const airData = airDatas[getModel()] && airDatas[getModel()][sites[0].latitude + ' ' + sites[0].longitude];
+				if (airData) {
+					sounding.setContent(showSounding(airData));
+				}
+			};
+			return false;
+		};
+	}
+	return div;
 }
+
+let updateSounding = () => {};
 
 /** Gets forecast for current time.
  * @param {{data: Object<string, Array<Forecast>>}} forecast Loaded forecast.data.
@@ -487,21 +508,170 @@ function getWindsKey(latLon) {
 	;
 }
 
+function svgLine(svg, coords, stroke, strokeWidth, attributes = {}) {
+	const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+	path.setAttribute('d', 'M' + coords.map(coord => coord.join(' ')).join('L'));
+	for (const key in attributes) {
+		path.setAttribute(key, attributes[key]);
+	}
+	path.style.stroke = stroke;
+	path.style.strokeWidth = strokeWidth;
+	path.style.fill = 'none';
+	return svg.appendChild(path);
+}
+
+function svgText(svg, textContent, x, y, color, attributes = {}) {
+	const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+	text.textContent = textContent;
+	text.setAttribute('x', x);
+	text.setAttribute('y', y);
+	text.setAttribute('text-anchor', 'middle');
+	for (const key in attributes) {
+		text.setAttribute(key, attributes[key]);
+	}
+	text.style.fill = color;
+	return svg.appendChild(text);
+}
+
+function interpolate(airData, layer, hour, height) {
+	const {header, data} = airData;
+	let above = {value: Infinity};
+	let below = {key: 'surface', value: header.modelElevation || header.elevation};
+	for (const key in data) {
+		const match = /^gh-(.+)/.exec(key);
+		const value = data[key][hour];
+		if (match && value) {
+			if (value < above.value && value > height) {
+				above = {key: match[1], value};
+			}
+			if (value > below.value && value <= height) {
+				below = {key: match[1], value};
+			}
+		}
+	}
+	const up = data[layer + '-' + above.key][hour];
+	const down = data[layer + '-' + below.key][hour];
+	return down + (up - down) / (above.value - below.value) * (height - below.value);
+}
+
+function splitWindDir(layers) {
+	let prev;
+	const segments = [];
+	for (const dir of layers.wind_u.map((u, i) => [(180 * Math.atan2(-layers.wind_v[i][0], u[0]) / Math.PI - 90 + 360) % 360, u[1]])) {
+		if (prev) {
+			if (Math.abs(prev[0] - dir[0]) <= 180) {
+				segments.push([prev, dir]);
+			} else {
+				segments.push([prev, [dir[0] + (prev[0] < dir[0] ? -360 : 360), dir[1]]]);
+				segments.push([[prev[0] + (prev[0] < dir[0] ? 360 : -360), prev[1]], dir]);
+			}
+		}
+		prev = dir;
+	}
+	return segments;
+}
+
+/** Shows sounding.
+ * @param {AirData} airData
+ * @return {Element}
+ */
+function showSounding(airData) {
+	const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+	svg.style.width = '435px';
+	svg.style.height = '420px';
+	for (let i = 0; i <= 400; i += 50) {
+		svgLine(svg, [[20, i], [420, i]], '#bbb', .5);
+	}
+	for (let i = 20; i <= 420; i += 50) {
+		svgLine(svg, [[i, 0], [i, 400]], '#bbb', .5);
+	}
+	const {header, data} = airData;
+	const hour = getCurrentHour(airData);
+	const layers = {temp: [], dewpoint: [], wind_u: [], wind_v: []};
+	let maxTemp = -Infinity;
+	const zeroK = -273.15;
+	const ground = header.modelElevation || header.elevation;
+	const ceiling = 4000 + Math.floor(ground / 500) * 500;
+	for (const key in data) {
+		const match = /^(temp|dewpoint|wind_u|wind_v)-(.+)/.exec(key);
+		if (match) {
+			const gh = (match[2] == 'surface' ? ground : data['gh-' + match[2]][hour]);
+			if (gh >= ground) {
+				layers[match[1]].push([data[key][hour], (ceiling - gh) / 10]);
+			}
+			if (match[1] == 'temp' || match[1] == 'dewpoint') {
+				maxTemp = Math.max(5 * Math.ceil((data[key][hour] + zeroK) / 5), maxTemp);
+			}
+		}
+	}
+	for (const key in layers) {
+		layers[key].sort((a, b) => b[1] - a[1]);
+	}
+	layers.temp = layers.temp.map(a => [420 + (a[0] + zeroK - maxTemp) * 10, a[1]]);
+	layers.dewpoint = layers.dewpoint.map(a => [420 + (a[0] + zeroK - maxTemp) * 10, a[1]]);
+	svgLine(svg, [layers.temp[0], [layers.temp[0][0] - (ceiling - ground) * 9.8 / 100, 0]], '#db5', 1);
+	svgLine(svg, [layers.dewpoint[0], [layers.dewpoint[0][0] - (ceiling - ground) * 9.8 / 5 / 100, 0]], '#db5', 1); // 5 is used by XCMeteo.
+	svgLine(svg, layers.temp, '#a22', 2);
+	svgLine(svg, layers.dewpoint, '#23a', 2);
+	svgLine(svg, layers.wind_u.map((u, i) => [20 + Math.sqrt(Math.pow(u[0], 2) + Math.pow(layers.wind_v[i][0], 2)) * 25, u[1]]), '#293', 1.5);
+	for (const segment of splitWindDir(layers)) {
+		svgLine(svg, segment.map(a => [20 + a[0] / 360 * 400, a[1]]), '#52bea8', 1.5, {'stroke-dasharray': '5 5'});
+	}
+	svgLine(svg, [[20, 0], [420, 0]], '#555', .5, {'stroke-dasharray': '5 1.5', 'class': 'guideline'}).style.visibility = 'hidden';
+	for (let i = 1; i <= ceiling / 1000; i++) {
+		svgText(svg, i + 'km', 15, 10 + ceiling / 10 - i * 100, '#555'); // Thin space: ' '.
+	}
+	const xAxis = {};
+	for (let i = maxTemp; i >= maxTemp - 20; i -= 5) {
+		xAxis[420 - (maxTemp - i) * 10] = {text: i + '°C', color: '#a22'};
+	}
+	for (let i = 0; i <= 6; i += 2) {
+		xAxis[20 + i * 25] = {text: i + 'm/s', color: '#293'};
+	}
+	const windDir = (180 * Math.atan2(-layers.wind_v[0][0], layers.wind_u[0][0]) / Math.PI - 90 + 360) % 360;
+	function drawWindDir(windDir) {
+		const x = 20 + windDir * 400 / 360;
+		delete xAxis[x];
+		svgText(svg, '↓', x, 415, '#52bea8', {transform: 'rotate(' + windDir + ',' + x + ',410)'});
+	}
+	drawWindDir(Math.floor(windDir / 45) * 45);
+	drawWindDir(Math.ceil(windDir / 45) * 45);
+	for (const x in xAxis) {
+		svgText(svg, xAxis[x].text, x, 415, xAxis[x].color);
+	}
+	svgText(svg, getModel(), 395, 22, '#999');
+	svgText(svg, (new Date(data.hours[hour])).getHours() + ':00', 395, 37, '#999');
+	svgText(svg, '', 395, 72, '#555', {'class': 'height'});
+	svgText(svg, '', 378, 87, '#52bea8', {'class': 'windDir'});
+	svgText(svg, '', 385, 87, '#293', {'class': 'windSpeed', 'text-anchor': 'start'});
+	svg.onmousemove = (event) => {
+		if (event.offsetX >= 20 && event.offsetX <= 420 && event.offsetY <= layers.temp[0][1]) {
+			const height = ceiling - event.offsetY * 10;
+			svg.querySelector('.height').textContent = height + 'm';
+			svg.querySelector('.windDir').textContent = '↓';
+			const u = interpolate(airData, 'wind_u', hour, height);
+			const v = interpolate(airData, 'wind_v', hour, height);
+			svg.querySelector('.windDir').setAttribute('transform', 'rotate(' + ((180 * Math.atan2(-v, u) / Math.PI - 90 + 360) % 360) + ',378,82)');
+			svg.querySelector('.windSpeed').textContent = Math.sqrt(Math.pow(u, 2) + Math.pow(v, 2)).toFixed(1) + 'm/s';
+			svg.querySelector('.guideline').style.visibility = 'visible';
+			svg.querySelector('.guideline').setAttribute('d', 'M20 ' + event.offsetY + 'L420 ' + event.offsetY);
+		} else {
+			svg.querySelector('.height').textContent = '';
+			svg.querySelector('.windDir').textContent = '';
+			svg.querySelector('.windSpeed').textContent = '';
+			svg.querySelector('.guideline').style.visibility = 'hidden';
+		}
+	};
+	return svg;
+}
+
 /** Computes ceiling: min(dry abiabat crossing humidity, temperature crossing dry adiabat).
  * @param {AirData} airData
  * @return number Altitude in meters
  */
 function computeCeiling(airData) {
 	const {header, data} = airData;
-	// The format of 'path' is YYYY/MM/DD/HH.
-	const now = new Date(store.get('path').replace(/\//g, '-').replace(/-(\d+)$/, 'T$1:00Z')).getTime();
-	let hour = 0;
-	for (const key in data.hours) {
-		if (data.hours[key] > now) {
-			break;
-		}
-		hour = key;
-	}
+	const hour = getCurrentHour(airData);
 	const elevation = header.modelElevation || header.elevation;
 	let dryAdiabatTemp = data['temp-surface'][hour];
 	// TODO: This depends on pressure: http://slovnik.cmes.cz/heslo/9
@@ -535,6 +705,20 @@ function computeCeiling(airData) {
 		}
 	});
 	return Math.min(ceiling, cloudBase);
+}
+
+function getCurrentHour(airData) {
+	const {data} = airData;
+	// The format of 'path' is YYYY/MM/DD/HH (ecmwf) or YYYYMMDDHH (iconEu).
+	const now = new Date(store.get('path').replace(/(\d{4})\/?(\d{2})\/?(\d{2})\/?(\d{2})/, '$1-$2-$3T$4:00Z')).getTime();
+	let hour = 0;
+	for (const key in data.hours) {
+		if (data.hours[key] > now) {
+			break;
+		}
+		hour = key;
+	}
+	return hour;
 }
 
 /** Gets translation.

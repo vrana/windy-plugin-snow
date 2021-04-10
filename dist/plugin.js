@@ -175,6 +175,7 @@ function () {
             }, getLatLon(latLon))).then(function (airData) {
               airDatas[model][latLon] = airData.data;
               markers[latLon].setPopupContent(getTooltip(sites[latLon]));
+              updateSounding();
             });
           }
         });
@@ -217,6 +218,7 @@ function () {
         activeMarker.fire('popupopen');
       }
     });
+    updateSounding();
   }
 
   function loadForecast(latLon) {
@@ -336,10 +338,35 @@ function () {
     var t = store.get('path').replace(/(\d{4})\/?(\d{2})\/?(\d{2})\/?(\d+)/, function (match, year, month, day, hour) {
       return year + '-' + month + '-' + day + 'T' + String(Math.round(hour / 3) * 3).padStart(2, 0) + ':00:00Z';
     });
-    extra.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">' + translate('Possible climb', 'Dostupy') + '</span>:' + ' <a href="http://www.xcmeteo.net/?p=' + p + ',t=' + t + ',s=' + encodeURIComponent(s) + '" target="_blank" title="' + translate('source', 'zdroj') + ': Windy ' + getModel() + '">' + (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-') + '</a>');
+    extra.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">' + translate('Possible climb', 'Dostupy') + '</span>:' + ' <a class="climb" href="http://www.xcmeteo.net/?p=' + p + ',t=' + t + ',s=' + encodeURIComponent(s) + '" target="_blank" title="' + translate('source', 'zdroj') + ': Windy ' + getModel() + '">' + (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-') + '</a>');
     tooltips.push(extra.join(' '));
-    return '<div style="white-space: nowrap;">' + tooltips.join('<br>') + '</div>';
+    var div = document.createElement('div');
+    div.style.whiteSpace = 'nowrap';
+    div.innerHTML = tooltips.join('<br>');
+
+    if (airData) {
+      div.querySelector('.climb').onclick = function () {
+        var sounding = L.popup({
+          maxWidth: 435
+        }).setLatLng([sites[0].latitude, sites[0].longitude]).setContent(showSounding(airData));
+        map.addLayer(sounding);
+
+        updateSounding = function updateSounding() {
+          var airData = airDatas[getModel()] && airDatas[getModel()][sites[0].latitude + ' ' + sites[0].longitude];
+
+          if (airData) {
+            sounding.setContent(showSounding(airData));
+          }
+        };
+
+        return false;
+      };
+    }
+
+    return div;
   }
+
+  var updateSounding = function updateSounding() {};
 
   function getForecast(forecast) {
     var path = store.get('path').replace(/(\d{4})\/?(\d{2})\/?(\d{2})\/?(\d{2})/, '$1-$2-$3-$4');
@@ -496,20 +523,271 @@ function () {
     return (store.get('overlay') == 'wind' ? store.get('product') + ':' + store.get('level') : getModel() + ':surface') + ':' + store.get('path') + ':' + latLon;
   }
 
+  function svgLine(svg, coords, stroke, strokeWidth) {
+    var attributes = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : {};
+    var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M' + coords.map(function (coord) {
+      return coord.join(' ');
+    }).join('L'));
+
+    for (var key in attributes) {
+      path.setAttribute(key, attributes[key]);
+    }
+
+    path.style.stroke = stroke;
+    path.style.strokeWidth = strokeWidth;
+    path.style.fill = 'none';
+    return svg.appendChild(path);
+  }
+
+  function svgText(svg, textContent, x, y, color) {
+    var attributes = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : {};
+    var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.textContent = textContent;
+    text.setAttribute('x', x);
+    text.setAttribute('y', y);
+    text.setAttribute('text-anchor', 'middle');
+
+    for (var key in attributes) {
+      text.setAttribute(key, attributes[key]);
+    }
+
+    text.style.fill = color;
+    return svg.appendChild(text);
+  }
+
+  function interpolate(airData, layer, hour, height) {
+    var header = airData.header,
+        data = airData.data;
+    var above = {
+      value: Infinity
+    };
+    var below = {
+      key: 'surface',
+      value: header.modelElevation || header.elevation
+    };
+
+    for (var key in data) {
+      var match = /^gh-(.+)/.exec(key);
+      var value = data[key][hour];
+
+      if (match && value) {
+        if (value < above.value && value > height) {
+          above = {
+            key: match[1],
+            value: value
+          };
+        }
+
+        if (value > below.value && value <= height) {
+          below = {
+            key: match[1],
+            value: value
+          };
+        }
+      }
+    }
+
+    var up = data[layer + '-' + above.key][hour];
+    var down = data[layer + '-' + below.key][hour];
+    return down + (up - down) / (above.value - below.value) * (height - below.value);
+  }
+
+  function splitWindDir(layers) {
+    var prev;
+    var segments = [];
+
+    var _iterator7 = _createForOfIteratorHelper(layers.wind_u.map(function (u, i) {
+      return [(180 * Math.atan2(-layers.wind_v[i][0], u[0]) / Math.PI - 90 + 360) % 360, u[1]];
+    })),
+        _step7;
+
+    try {
+      for (_iterator7.s(); !(_step7 = _iterator7.n()).done;) {
+        var dir = _step7.value;
+
+        if (prev) {
+          if (Math.abs(prev[0] - dir[0]) <= 180) {
+            segments.push([prev, dir]);
+          } else {
+            segments.push([prev, [dir[0] + (prev[0] < dir[0] ? -360 : 360), dir[1]]]);
+            segments.push([[prev[0] + (prev[0] < dir[0] ? 360 : -360), prev[1]], dir]);
+          }
+        }
+
+        prev = dir;
+      }
+    } catch (err) {
+      _iterator7.e(err);
+    } finally {
+      _iterator7.f();
+    }
+
+    return segments;
+  }
+
+  function showSounding(airData) {
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.style.width = '435px';
+    svg.style.height = '420px';
+
+    for (var i = 0; i <= 400; i += 50) {
+      svgLine(svg, [[20, i], [420, i]], '#bbb', .5);
+    }
+
+    for (var _i = 20; _i <= 420; _i += 50) {
+      svgLine(svg, [[_i, 0], [_i, 400]], '#bbb', .5);
+    }
+
+    var header = airData.header,
+        data = airData.data;
+    var hour = getCurrentHour(airData);
+    var layers = {
+      temp: [],
+      dewpoint: [],
+      wind_u: [],
+      wind_v: []
+    };
+    var maxTemp = -Infinity;
+    var zeroK = -273.15;
+    var ground = header.modelElevation || header.elevation;
+    var ceiling = 4000 + Math.floor(ground / 500) * 500;
+
+    for (var key in data) {
+      var match = /^(temp|dewpoint|wind_u|wind_v)-(.+)/.exec(key);
+
+      if (match) {
+        var gh = match[2] == 'surface' ? ground : data['gh-' + match[2]][hour];
+
+        if (gh >= ground) {
+          layers[match[1]].push([data[key][hour], (ceiling - gh) / 10]);
+        }
+
+        if (match[1] == 'temp' || match[1] == 'dewpoint') {
+          maxTemp = Math.max(5 * Math.ceil((data[key][hour] + zeroK) / 5), maxTemp);
+        }
+      }
+    }
+
+    for (var _key in layers) {
+      layers[_key].sort(function (a, b) {
+        return b[1] - a[1];
+      });
+    }
+
+    layers.temp = layers.temp.map(function (a) {
+      return [420 + (a[0] + zeroK - maxTemp) * 10, a[1]];
+    });
+    layers.dewpoint = layers.dewpoint.map(function (a) {
+      return [420 + (a[0] + zeroK - maxTemp) * 10, a[1]];
+    });
+    svgLine(svg, [layers.temp[0], [layers.temp[0][0] - (ceiling - ground) * 9.8 / 100, 0]], '#db5', 1);
+    svgLine(svg, [layers.dewpoint[0], [layers.dewpoint[0][0] - (ceiling - ground) * 9.8 / 5 / 100, 0]], '#db5', 1);
+    svgLine(svg, layers.temp, '#a22', 2);
+    svgLine(svg, layers.dewpoint, '#23a', 2);
+    svgLine(svg, layers.wind_u.map(function (u, i) {
+      return [20 + Math.sqrt(Math.pow(u[0], 2) + Math.pow(layers.wind_v[i][0], 2)) * 25, u[1]];
+    }), '#293', 1.5);
+
+    var _iterator8 = _createForOfIteratorHelper(splitWindDir(layers)),
+        _step8;
+
+    try {
+      for (_iterator8.s(); !(_step8 = _iterator8.n()).done;) {
+        var segment = _step8.value;
+        svgLine(svg, segment.map(function (a) {
+          return [20 + a[0] / 360 * 400, a[1]];
+        }), '#52bea8', 1.5, {
+          'stroke-dasharray': '5 5'
+        });
+      }
+    } catch (err) {
+      _iterator8.e(err);
+    } finally {
+      _iterator8.f();
+    }
+
+    svgLine(svg, [[20, 0], [420, 0]], '#555', .5, {
+      'stroke-dasharray': '5 1.5',
+      'class': 'guideline'
+    }).style.visibility = 'hidden';
+
+    for (var _i2 = 1; _i2 <= ceiling / 1000; _i2++) {
+      svgText(svg, _i2 + 'km', 15, 10 + ceiling / 10 - _i2 * 100, '#555');
+    }
+
+    var xAxis = {};
+
+    for (var _i3 = maxTemp; _i3 >= maxTemp - 20; _i3 -= 5) {
+      xAxis[420 - (maxTemp - _i3) * 10] = {
+        text: _i3 + '°C',
+        color: '#a22'
+      };
+    }
+
+    for (var _i4 = 0; _i4 <= 6; _i4 += 2) {
+      xAxis[20 + _i4 * 25] = {
+        text: _i4 + 'm/s',
+        color: '#293'
+      };
+    }
+
+    var windDir = (180 * Math.atan2(-layers.wind_v[0][0], layers.wind_u[0][0]) / Math.PI - 90 + 360) % 360;
+
+    function drawWindDir(windDir) {
+      var x = 20 + windDir * 400 / 360;
+      delete xAxis[x];
+      svgText(svg, '↓', x, 415, '#52bea8', {
+        transform: 'rotate(' + windDir + ',' + x + ',410)'
+      });
+    }
+
+    drawWindDir(Math.floor(windDir / 45) * 45);
+    drawWindDir(Math.ceil(windDir / 45) * 45);
+
+    for (var x in xAxis) {
+      svgText(svg, xAxis[x].text, x, 415, xAxis[x].color);
+    }
+
+    svgText(svg, getModel(), 395, 22, '#999');
+    svgText(svg, new Date(data.hours[hour]).getHours() + ':00', 395, 37, '#999');
+    svgText(svg, '', 395, 72, '#555', {
+      'class': 'height'
+    });
+    svgText(svg, '', 378, 87, '#52bea8', {
+      'class': 'windDir'
+    });
+    svgText(svg, '', 385, 87, '#293', {
+      'class': 'windSpeed',
+      'text-anchor': 'start'
+    });
+
+    svg.onmousemove = function (event) {
+      if (event.offsetX >= 20 && event.offsetX <= 420 && event.offsetY <= layers.temp[0][1]) {
+        var height = ceiling - event.offsetY * 10;
+        svg.querySelector('.height').textContent = height + 'm';
+        svg.querySelector('.windDir').textContent = '↓';
+        var u = interpolate(airData, 'wind_u', hour, height);
+        var v = interpolate(airData, 'wind_v', hour, height);
+        svg.querySelector('.windDir').setAttribute('transform', 'rotate(' + (180 * Math.atan2(-v, u) / Math.PI - 90 + 360) % 360 + ',378,82)');
+        svg.querySelector('.windSpeed').textContent = Math.sqrt(Math.pow(u, 2) + Math.pow(v, 2)).toFixed(1) + 'm/s';
+        svg.querySelector('.guideline').style.visibility = 'visible';
+        svg.querySelector('.guideline').setAttribute('d', 'M20 ' + event.offsetY + 'L420 ' + event.offsetY);
+      } else {
+        svg.querySelector('.height').textContent = '';
+        svg.querySelector('.windDir').textContent = '';
+        svg.querySelector('.windSpeed').textContent = '';
+        svg.querySelector('.guideline').style.visibility = 'hidden';
+      }
+    };
+
+    return svg;
+  }
+
   function computeCeiling(airData) {
     var header = airData.header,
         data = airData.data;
-    var now = new Date(store.get('path').replace(/\//g, '-').replace(/-(\d+)$/, 'T$1:00Z')).getTime();
-    var hour = 0;
-
-    for (var key in data.hours) {
-      if (data.hours[key] > now) {
-        break;
-      }
-
-      hour = key;
-    }
-
+    var hour = getCurrentHour(airData);
     var elevation = header.modelElevation || header.elevation;
     var dryAdiabatTemp = data['temp-surface'][hour];
     var cloudBase = elevation + (dryAdiabatTemp - data['dewpoint-surface'][hour]) * 122;
@@ -518,11 +796,11 @@ function () {
       gh: {}
     };
 
-    for (var _key in data) {
-      var match = /^(temp|gh)-(\d+)h$/.exec(_key);
+    for (var key in data) {
+      var match = /^(temp|gh)-(\d+)h$/.exec(key);
 
       if (match) {
-        layers[match[1]][match[2]] = data[_key][hour];
+        layers[match[1]][match[2]] = data[key][hour];
       }
     }
 
@@ -548,6 +826,22 @@ function () {
       }
     });
     return Math.min(ceiling, cloudBase);
+  }
+
+  function getCurrentHour(airData) {
+    var data = airData.data;
+    var now = new Date(store.get('path').replace(/(\d{4})\/?(\d{2})\/?(\d{2})\/?(\d{2})/, '$1-$2-$3T$4:00Z')).getTime();
+    var hour = 0;
+
+    for (var key in data.hours) {
+      if (data.hours[key] > now) {
+        break;
+      }
+
+      hour = key;
+    }
+
+    return hour;
   }
 
   function translate(english, czech) {
