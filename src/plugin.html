@@ -111,6 +111,8 @@ const forecasts = {};
 let AirData;
 /** @type {Object<string, Object<string, AirData>>} key: model, key2: latLon */
 const airDatas = {};
+/** @type {boolean} Whether to display sounding. */
+let displaySounding = false;
 
 function init() {
 	if (Object.keys(markers).length) {
@@ -161,7 +163,6 @@ function init() {
 						// Cache: response has Expires: -1.
 						airDatas[model][latLon] = airData.data;
 						markers[latLon].setPopupContent(getTooltip(latLon));
-						updateSounding();
 					});
 				}
 			});
@@ -201,7 +202,6 @@ function redraw() {
 			activeMarker.fire('popupopen');
 		}
 	});
-	updateSounding();
 }
 
 /** Loads forecast if not already loaded.
@@ -316,30 +316,22 @@ function getTooltip(latLon) {
 		+ (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-')
 		+ '</a>'
 	);
-	tooltips.push(extra.join(' '));
+	tooltips.push(extra.join(' '), '');
 	const div = document.createElement('div');
 	div.style.whiteSpace = 'nowrap';
 	div.innerHTML = tooltips.join('<br>');
 	if (airData) {
+		if (displaySounding) {
+			div.appendChild(showSounding(airData));
+		}
 		div.querySelector('.climb').onclick = () => {
-			// TODO: Use drop-down instead of popup.
-			const sounding = L.popup({maxWidth: 435}).setLatLng(getLatLon(latLon)).setContent(showSounding(airData));
-			map.addLayer(sounding);
-			updateSounding = () => {
-				const airData = airDatas[getModel()] && airDatas[getModel()][latLon];
-				if (airData && lastSounding != getModel() + store.get('path')) {
-					sounding.setContent(showSounding(airData));
-					lastSounding = getModel() + store.get('path');
-				}
-			};
+			displaySounding = !displaySounding;
+			markers[latLon].setPopupContent(getTooltip(latLon));
 			return false;
 		};
 	}
 	return div;
 }
-
-let updateSounding = () => {};
-let lastSounding;
 
 /** Gets forecast for current time.
  * @param {{data: Object<string, Array<Forecast>>}} forecast Loaded forecast.data.
@@ -579,6 +571,7 @@ function showSounding(airData) {
 	const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 	svg.style.width = '435px';
 	svg.style.height = '420px';
+	svg.style.zoom = '75%';
 	for (let i = 0; i <= 400; i += 50) {
 		svgLine(svg, [[20, i], [420, i]], '#bbb', .5);
 		svgLine(svg, [[20 + i, 0], [20 + i, 400]], '#bbb', .5);
@@ -649,16 +642,19 @@ function showSounding(airData) {
 	svgText(svg, '', 378, 87, '#52bea8', {'class': 'windDir'});
 	svgText(svg, '', 385, 87, '#293', {'class': 'windSpeed', 'text-anchor': 'start'});
 	svg.onmousemove = (event) => {
-		if (event.offsetX >= 20 && event.offsetX <= 420 && event.offsetY <= layers.temp[0][1]) {
-			const height = ceiling - event.offsetY * 10;
-			svg.querySelector('.height').textContent = height + 'm';
+		const zoom = parseInt(svg.style.zoom) / 100;
+		const x = event.offsetX / zoom;
+		const y = event.offsetY / zoom;
+		if (x >= 20 && x <= 420 && y <= layers.temp[0][1]) {
+			const height = ceiling - y * 10;
+			svg.querySelector('.height').textContent = Math.round(height / 10) * 10 + 'm';
 			svg.querySelector('.windDir').textContent = '↓';
 			const u = interpolate(airData, 'wind_u', hour, height);
 			const v = interpolate(airData, 'wind_v', hour, height);
 			svg.querySelector('.windDir').setAttribute('transform', 'rotate(' + ((180 * Math.atan2(-v, u) / Math.PI - 90 + 360) % 360) + ',378,82)');
 			svg.querySelector('.windSpeed').textContent = Math.sqrt(Math.pow(u, 2) + Math.pow(v, 2)).toFixed(1) + 'm/s';
 			svg.querySelector('.guideline').style.visibility = 'visible';
-			svg.querySelector('.guideline').setAttribute('d', 'M20 ' + event.offsetY + 'L420 ' + event.offsetY);
+			svg.querySelector('.guideline').setAttribute('d', 'M20 ' + y + 'L420 ' + y);
 		} else {
 			svg.querySelector('.height').textContent = '';
 			svg.querySelector('.windDir').textContent = '';

@@ -101,6 +101,7 @@ function () {
   var forecasts = {};
   var AirData;
   var airDatas = {};
+  var displaySounding = false;
 
   function init() {
     if (Object.keys(markers).length) {
@@ -184,7 +185,6 @@ function () {
             }, getLatLon(latLon))).then(function (airData) {
               airDatas[model][latLon] = airData.data;
               markers[latLon].setPopupContent(getTooltip(latLon));
-              updateSounding();
             });
           }
         });
@@ -230,7 +230,6 @@ function () {
         activeMarker.fire('popupopen');
       }
     });
-    updateSounding();
   }
 
   function loadForecast(latLon) {
@@ -347,37 +346,25 @@ function () {
       return year + '-' + month + '-' + day + 'T' + String(Math.round(hour / 3) * 3).padStart(2, 0) + ':00:00Z';
     });
     extra.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">' + translate('Possible climb', 'Dostupy') + '</span>:' + ' <a class="climb" href="http://www.xcmeteo.net/?p=' + latLon.replace(/ /, 'x') + ',t=' + t + ',s=' + encodeURIComponent(s) + '" target="_blank" title="' + translate('source', 'zdroj') + ': Windy ' + model + '">' + (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-') + '</a>');
-    tooltips.push(extra.join(' '));
+    tooltips.push(extra.join(' '), '');
     var div = document.createElement('div');
     div.style.whiteSpace = 'nowrap';
     div.innerHTML = tooltips.join('<br>');
 
     if (airData) {
+      if (displaySounding) {
+        div.appendChild(showSounding(airData));
+      }
+
       div.querySelector('.climb').onclick = function () {
-        var sounding = L.popup({
-          maxWidth: 435
-        }).setLatLng(getLatLon(latLon)).setContent(showSounding(airData));
-        map.addLayer(sounding);
-
-        updateSounding = function updateSounding() {
-          var airData = airDatas[getModel()] && airDatas[getModel()][latLon];
-
-          if (airData && lastSounding != getModel() + store.get('path')) {
-            sounding.setContent(showSounding(airData));
-            lastSounding = getModel() + store.get('path');
-          }
-        };
-
+        displaySounding = !displaySounding;
+        markers[latLon].setPopupContent(getTooltip(latLon));
         return false;
       };
     }
 
     return div;
   }
-
-  var updateSounding = function updateSounding() {};
-
-  var lastSounding;
 
   function getForecast(forecast) {
     var path = store.get('path').replace(/(\d{4})\/?(\d{2})\/?(\d{2})\/?(\d{2})/, '$1-$2-$3-$4');
@@ -669,6 +656,7 @@ function () {
     var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.style.width = '435px';
     svg.style.height = '420px';
+    svg.style.zoom = '75%';
 
     for (var i = 0; i <= 400; i += 50) {
       svgLine(svg, [[20, i], [420, i]], '#bbb', .5);
@@ -805,16 +793,20 @@ function () {
     });
 
     svg.onmousemove = function (event) {
-      if (event.offsetX >= 20 && event.offsetX <= 420 && event.offsetY <= layers.temp[0][1]) {
-        var height = ceiling - event.offsetY * 10;
-        svg.querySelector('.height').textContent = height + 'm';
+      var zoom = parseInt(svg.style.zoom) / 100;
+      var x = event.offsetX / zoom;
+      var y = event.offsetY / zoom;
+
+      if (x >= 20 && x <= 420 && y <= layers.temp[0][1]) {
+        var height = ceiling - y * 10;
+        svg.querySelector('.height').textContent = Math.round(height / 10) * 10 + 'm';
         svg.querySelector('.windDir').textContent = '↓';
         var u = interpolate(airData, 'wind_u', hour, height);
         var v = interpolate(airData, 'wind_v', hour, height);
         svg.querySelector('.windDir').setAttribute('transform', 'rotate(' + (180 * Math.atan2(-v, u) / Math.PI - 90 + 360) % 360 + ',378,82)');
         svg.querySelector('.windSpeed').textContent = Math.sqrt(Math.pow(u, 2) + Math.pow(v, 2)).toFixed(1) + 'm/s';
         svg.querySelector('.guideline').style.visibility = 'visible';
-        svg.querySelector('.guideline').setAttribute('d', 'M20 ' + event.offsetY + 'L420 ' + event.offsetY);
+        svg.querySelector('.guideline').setAttribute('d', 'M20 ' + y + 'L420 ' + y);
       } else {
         svg.querySelector('.height').textContent = '';
         svg.querySelector('.windDir').textContent = '';
