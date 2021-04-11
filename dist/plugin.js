@@ -354,8 +354,9 @@ function () {
         updateSounding = function updateSounding() {
           var airData = airDatas[getModel()] && airDatas[getModel()][sites[0].latitude + ' ' + sites[0].longitude];
 
-          if (airData) {
+          if (airData && lastSounding != getModel() + store.get('path')) {
             sounding.setContent(showSounding(airData));
+            lastSounding = getModel() + store.get('path');
           }
         };
 
@@ -367,6 +368,8 @@ function () {
   }
 
   var updateSounding = function updateSounding() {};
+
+  var lastSounding;
 
   function getForecast(forecast) {
     var path = store.get('path').replace(/(\d{4})\/?(\d{2})\/?(\d{2})\/?(\d{2})/, '$1-$2-$3-$4');

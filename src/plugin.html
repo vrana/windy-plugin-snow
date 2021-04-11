@@ -331,8 +331,9 @@ function getTooltip(sites) {
 			map.addLayer(sounding);
 			updateSounding = () => {
 				const airData = airDatas[getModel()] && airDatas[getModel()][sites[0].latitude + ' ' + sites[0].longitude];
-				if (airData) {
+				if (airData && lastSounding != getModel() + store.get('path')) {
 					sounding.setContent(showSounding(airData));
+					lastSounding = getModel() + store.get('path');
 				}
 			};
 			return false;
@@ -342,6 +343,7 @@ function getTooltip(sites) {
 }
 
 let updateSounding = () => {};
+let lastSounding;
 
 /** Gets forecast for current time.
  * @param {{data: Object<string, Array<Forecast>>}} forecast Loaded forecast.data.
