@@ -39,12 +39,12 @@ function getLaunchExtra(site) {
 	return '';
 }
 
-function getWindAttrs(lat, lon) {
-	return ' href=\'javascript:W.store.set("detailDisplay", "wind"); W.broadcast.fire("rqstOpen", "detail", {lat: ' + lat + ', lon: ' + lon + '});\'';
+function getWindAttrs(latLon) {
+	return ' href=\'javascript:W.store.set("detailDisplay", "wind"); W.broadcast.fire("rqstOpen", "detail", ' + JSON.stringify(getLatLon(latLon)) + ');\'';
 }
 
-function getForecastAttrs(lat, lon) {
-	return ' href=\'javascript:W.store.set("detailDisplay", "meteogram"); W.broadcast.fire("rqstOpen", "detail", {lat: ' + lat + ', lon: ' + lon + '});\'';
+function getForecastAttrs(latLon) {
+	return ' href=\'javascript:W.store.set("detailDisplay", "meteogram"); W.broadcast.fire("rqstOpen", "detail", ' + JSON.stringify(getLatLon(latLon)) + ');\'';
 }
 
 this.onopen = function () {
@@ -149,7 +149,7 @@ function init() {
 				title: sites[latLon].map(site => site.name + (site.superelevation ? ' (' + site.superelevation + ' m)' : (site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : ''))).join('\n'),
 			});
 			// Leaflet supports binding function but that function is called only the first time the popup is opened.
-			marker.bindPopup(getTooltip(sites[latLon]), {minWidth: 200, maxWidth: 400});
+			marker.bindPopup(getTooltip(latLon), {minWidth: 200, maxWidth: 400});
 			// Leaflet tooltips close when you hover the tooltip and they work poorly on mobile. Use popup instead.
 			marker.on('popupopen', () => {
 				activeMarker = marker;
@@ -160,7 +160,7 @@ function init() {
 					loadData('airData', Object.assign({model}, getLatLon(latLon))).then(airData => {
 						// Cache: response has Expires: -1.
 						airDatas[model][latLon] = airData.data;
-						markers[latLon].setPopupContent(getTooltip(sites[latLon]));
+						markers[latLon].setPopupContent(getTooltip(latLon));
 						updateSounding();
 					});
 				}
@@ -241,24 +241,20 @@ function updateMarker(latLon) {
 	const wind = getWind(latLon);
 	markers[latLon].setIcon(newIcon(getIconUrl(sites[latLon], wind), map.getZoom(), sites[latLon]));
 	markers[latLon].setOpacity(getColor(sites[latLon], wind) != 'red' ? 1 : .6);
-	markers[latLon].setPopupContent(getTooltip(sites[latLon]));
+	markers[latLon].setPopupContent(getTooltip(latLon));
 }
 
 /** Gets tooltip with site names, wind info and forecast.
- * @param {Array<Site>} sites
+ * @param {string} latLon
  * @return {HTMLElement}
  */
-function getTooltip(sites) {
-	let wind;
-	let forecast;
-	let airData;
+function getTooltip(latLon) {
+	const localSites = sites[latLon];
 	const model = getModel();
-	const tooltips = sites.map(site => {
-		// Site latLon might be slightly different from wind latLon due to a utils.isNear call. However one will eventually match.
-		const latLon = site.latitude + ' ' + site.longitude;
-		wind = wind || getWind(latLon);
-		forecast = forecast || (forecasts[model] && forecasts[model][latLon]);
-		airData = airData || (airDatas[model] && airDatas[model][latLon]);
+	const wind = getWind(latLon);
+	const forecast = forecasts[model] && forecasts[model][latLon];
+	const airData = airDatas[model] && airDatas[model][latLon];
+	const tooltips = localSites.map(site => {
 		const color = getColor([site], wind);
 		const colors = {lime: 'green', yellow: 'orange', red: 'red'};
 		return '<b style="font-size: 1.25em;"><a' + getLaunchAttrs(site)
@@ -279,8 +275,8 @@ function getTooltip(sites) {
 		const colors = ['green', 'orange', 'red'];
 		// TODO: Get the high wind from airData for the other overlays.
 		const windHeight = ' ' + (store.get('level') == 'surface' || store.get('overlay') != 'wind' ? translate('on surface', 'na zemi') : translate('at', 'v') + ' ' + store.get('level'));
-		extra.push('<a' + getWindAttrs(sites[0].latitude, sites[0].longitude) + '>'
-			+ '<span style="color: ' + colors[getDirIndex(sites, wind.dir)] + ';" title="' + translate('wind direction', 'směr větru') + windHeight + '">'
+		extra.push('<a' + getWindAttrs(latLon) + '>'
+			+ '<span style="color: ' + colors[getDirIndex(localSites, wind.dir)] + ';" title="' + translate('wind direction', 'směr větru') + windHeight + '">'
 			+ '<span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '°</span>'
 			+ ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';" title="' + translate('wind speed', 'rychlost větru') + windHeight + '">' + wind.wind.toFixed(1) + ' m/s'
 			+ (data && data.gust != null ? ',</span> <span style="color: ' + colors[getSpeedIndex(data.gust - 4)] + ';" title="' + translate('gusts on surface', 'nárazy na zemi') + '">G: ' + data.gust.toFixed(1) + ' m/s' : '')
@@ -291,7 +287,7 @@ function getTooltip(sites) {
 		const sunrise = new Date(forecast.header.sunrise).getHours();
 		const sunset = new Date(forecast.header.sunset).getHours();
 		const icon = data.icon2 + (data.hour > sunrise && data.hour <= sunset ? '' : '_night_' + data.moonPhase);
-		extra.push('<a' + getForecastAttrs(sites[0].latitude, sites[0].longitude) + '>'
+		extra.push('<a' + getForecastAttrs(latLon) + '>'
 			+ '<img src="https://www.windy.com/img/icons4/png_25px/' + icon + '.png" style="height: 1.3em; vertical-align: middle;" title="' + translate('weather', 'počasí') + ' ' + model + '"></a>'
 			+ (data.mm ? ' <span title="' + translate('precipitation', 'srážky') + '">' + data.mm + ' mm</span>' : '')
 		);
@@ -302,22 +298,21 @@ function getTooltip(sites) {
 		const meteoLinks = (links || '').matchAll(/(https?:\/\/[^\s,;]+\w)( \([^()]+\))?/g);
 		Array.from(meteoLinks).forEach(link => extra.push('<a href="' + html(link[1]) + '" class="iconfont" style="vertical-align: middle;" title="' + title + html(link[2] || '') + '" target="_blank">' + icon + '</a>'));
 	}
-	addLinks(sites[0].link_meteo, translate('weather station', 'meteostanice'), '');
-	addLinks(sites[0].link_webcam, translate('webcam', 'webkamera'), 'l');
-	let s = sites[0].name;
-	if (sites.length > 1) {
+	addLinks(localSites[0].link_meteo, translate('weather station', 'meteostanice'), '');
+	addLinks(localSites[0].link_webcam, translate('webcam', 'webkamera'), 'l');
+	let s = localSites[0].name;
+	if (localSites.length > 1) {
 		const words = {};
-		for (const site of sites) {
+		for (const site of localSites) {
 			site.name.split(/[- ,.]+/).forEach(word => words[word] = (words[word] || 0) + 1);
 		}
-		const names = Object.keys(words).filter(word => words[word] == sites.length);
+		const names = Object.keys(words).filter(word => words[word] == localSites.length);
 		s = names.length ? names.join(' ') : s;
 	}
-	const p = sites[0].longitude + 'x' + sites[0].latitude;
 	const t = store.get('path').replace(/(\d{4})\/?(\d{2})\/?(\d{2})\/?(\d+)/, (match, year, month, day, hour) => year + '-' + month + '-' + day + 'T' + String(Math.round(hour / 3) * 3).padStart(2, 0) + ':00:00Z');
 	extra.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">'
 		+ translate('Possible climb', 'Dostupy') + '</span>:'
-		+ ' <a class="climb" href="http://www.xcmeteo.net/?p=' + p + ',t=' + t + ',s=' + encodeURIComponent(s) + '" target="_blank" title="' + translate('source', 'zdroj') + ': Windy ' + getModel() + '">'
+		+ ' <a class="climb" href="http://www.xcmeteo.net/?p=' + latLon.replace(/ /, 'x') + ',t=' + t + ',s=' + encodeURIComponent(s) + '" target="_blank" title="' + translate('source', 'zdroj') + ': Windy ' + model + '">'
 		+ (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-')
 		+ '</a>'
 	);
@@ -328,10 +323,10 @@ function getTooltip(sites) {
 	if (airData) {
 		div.querySelector('.climb').onclick = () => {
 			// TODO: Use drop-down instead of popup.
-			const sounding = L.popup({maxWidth: 435}).setLatLng([sites[0].latitude, sites[0].longitude]).setContent(showSounding(airData));
+			const sounding = L.popup({maxWidth: 435}).setLatLng(getLatLon(latLon)).setContent(showSounding(airData));
 			map.addLayer(sounding);
 			updateSounding = () => {
-				const airData = airDatas[getModel()] && airDatas[getModel()][sites[0].latitude + ' ' + sites[0].longitude];
+				const airData = airDatas[getModel()] && airDatas[getModel()][latLon];
 				if (airData && lastSounding != getModel() + store.get('path')) {
 					sounding.setContent(showSounding(airData));
 					lastSounding = getModel() + store.get('path');
@@ -494,7 +489,7 @@ function getCircleSlice(startAngle, endAngle, size, color) {
 }
 
 /** Gets {lat, lon} object.
- * @param {string} Latitude and longitude separated with space.
+ * @param {string} latLon Latitude and longitude separated with space.
  * @return {{lat: number, lon: number}}
  */
 function getLatLon(latLon) {

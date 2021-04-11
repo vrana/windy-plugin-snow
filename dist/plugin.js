@@ -73,12 +73,12 @@ function () {
     return '';
   }
 
-  function getWindAttrs(lat, lon) {
-    return ' href=\'javascript:W.store.set("detailDisplay", "wind"); W.broadcast.fire("rqstOpen", "detail", {lat: ' + lat + ', lon: ' + lon + '});\'';
+  function getWindAttrs(latLon) {
+    return ' href=\'javascript:W.store.set("detailDisplay", "wind"); W.broadcast.fire("rqstOpen", "detail", ' + JSON.stringify(getLatLon(latLon)) + ');\'';
   }
 
-  function getForecastAttrs(lat, lon) {
-    return ' href=\'javascript:W.store.set("detailDisplay", "meteogram"); W.broadcast.fire("rqstOpen", "detail", {lat: ' + lat + ', lon: ' + lon + '});\'';
+  function getForecastAttrs(latLon) {
+    return ' href=\'javascript:W.store.set("detailDisplay", "meteogram"); W.broadcast.fire("rqstOpen", "detail", ' + JSON.stringify(getLatLon(latLon)) + ');\'';
   }
 
   this.onopen = function () {
@@ -168,7 +168,7 @@ function () {
             return site.name + (site.superelevation ? ' (' + site.superelevation + ' m)' : site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : '');
           }).join('\n')
         });
-        marker.bindPopup(getTooltip(sites[latLon]), {
+        marker.bindPopup(getTooltip(latLon), {
           minWidth: 200,
           maxWidth: 400
         });
@@ -183,7 +183,7 @@ function () {
               model: model
             }, getLatLon(latLon))).then(function (airData) {
               airDatas[model][latLon] = airData.data;
-              markers[latLon].setPopupContent(getTooltip(sites[latLon]));
+              markers[latLon].setPopupContent(getTooltip(latLon));
               updateSounding();
             });
           }
@@ -266,19 +266,16 @@ function () {
     var wind = getWind(latLon);
     markers[latLon].setIcon(newIcon(getIconUrl(sites[latLon], wind), map.getZoom(), sites[latLon]));
     markers[latLon].setOpacity(getColor(sites[latLon], wind) != 'red' ? 1 : .6);
-    markers[latLon].setPopupContent(getTooltip(sites[latLon]));
+    markers[latLon].setPopupContent(getTooltip(latLon));
   }
 
-  function getTooltip(sites) {
-    var wind;
-    var forecast;
-    var airData;
+  function getTooltip(latLon) {
+    var localSites = sites[latLon];
     var model = getModel();
-    var tooltips = sites.map(function (site) {
-      var latLon = site.latitude + ' ' + site.longitude;
-      wind = wind || getWind(latLon);
-      forecast = forecast || forecasts[model] && forecasts[model][latLon];
-      airData = airData || airDatas[model] && airDatas[model][latLon];
+    var wind = getWind(latLon);
+    var forecast = forecasts[model] && forecasts[model][latLon];
+    var airData = airDatas[model] && airDatas[model][latLon];
+    var tooltips = localSites.map(function (site) {
       var color = getColor([site], wind);
       var colors = {
         lime: 'green',
@@ -295,14 +292,14 @@ function () {
     if (wind) {
       var colors = ['green', 'orange', 'red'];
       var windHeight = ' ' + (store.get('level') == 'surface' || store.get('overlay') != 'wind' ? translate('on surface', 'na zemi') : translate('at', 'v') + ' ' + store.get('level'));
-      extra.push('<a' + getWindAttrs(sites[0].latitude, sites[0].longitude) + '>' + '<span style="color: ' + colors[getDirIndex(sites, wind.dir)] + ';" title="' + translate('wind direction', 'směr větru') + windHeight + '">' + '<span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '°</span>' + ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';" title="' + translate('wind speed', 'rychlost větru') + windHeight + '">' + wind.wind.toFixed(1) + ' m/s' + (data && data.gust != null ? ',</span> <span style="color: ' + colors[getSpeedIndex(data.gust - 4)] + ';" title="' + translate('gusts on surface', 'nárazy na zemi') + '">G: ' + data.gust.toFixed(1) + ' m/s' : '') + '</span></a>');
+      extra.push('<a' + getWindAttrs(latLon) + '>' + '<span style="color: ' + colors[getDirIndex(localSites, wind.dir)] + ';" title="' + translate('wind direction', 'směr větru') + windHeight + '">' + '<span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '°</span>' + ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';" title="' + translate('wind speed', 'rychlost větru') + windHeight + '">' + wind.wind.toFixed(1) + ' m/s' + (data && data.gust != null ? ',</span> <span style="color: ' + colors[getSpeedIndex(data.gust - 4)] + ';" title="' + translate('gusts on surface', 'nárazy na zemi') + '">G: ' + data.gust.toFixed(1) + ' m/s' : '') + '</span></a>');
     }
 
     if (data) {
       var sunrise = new Date(forecast.header.sunrise).getHours();
       var sunset = new Date(forecast.header.sunset).getHours();
       var icon = data.icon2 + (data.hour > sunrise && data.hour <= sunset ? '' : '_night_' + data.moonPhase);
-      extra.push('<a' + getForecastAttrs(sites[0].latitude, sites[0].longitude) + '>' + '<img src="https://www.windy.com/img/icons4/png_25px/' + icon + '.png" style="height: 1.3em; vertical-align: middle;" title="' + translate('weather', 'počasí') + ' ' + model + '"></a>' + (data.mm ? ' <span title="' + translate('precipitation', 'srážky') + '">' + data.mm + ' mm</span>' : ''));
+      extra.push('<a' + getForecastAttrs(latLon) + '>' + '<img src="https://www.windy.com/img/icons4/png_25px/' + icon + '.png" style="height: 1.3em; vertical-align: middle;" title="' + translate('weather', 'počasí') + ' ' + model + '"></a>' + (data.mm ? ' <span title="' + translate('precipitation', 'srážky') + '">' + data.mm + ' mm</span>' : ''));
     }
 
     tooltips.push(extra.join(' '));
@@ -315,15 +312,15 @@ function () {
       });
     }
 
-    addLinks(sites[0].link_meteo, translate('weather station', 'meteostanice'), '');
-    addLinks(sites[0].link_webcam, translate('webcam', 'webkamera'), 'l');
-    var s = sites[0].name;
+    addLinks(localSites[0].link_meteo, translate('weather station', 'meteostanice'), '');
+    addLinks(localSites[0].link_webcam, translate('webcam', 'webkamera'), 'l');
+    var s = localSites[0].name;
 
-    if (sites.length > 1) {
+    if (localSites.length > 1) {
       (function () {
         var words = {};
 
-        var _iterator3 = _createForOfIteratorHelper(sites),
+        var _iterator3 = _createForOfIteratorHelper(localSites),
             _step3;
 
         try {
@@ -340,17 +337,16 @@ function () {
         }
 
         var names = Object.keys(words).filter(function (word) {
-          return words[word] == sites.length;
+          return words[word] == localSites.length;
         });
         s = names.length ? names.join(' ') : s;
       })();
     }
 
-    var p = sites[0].longitude + 'x' + sites[0].latitude;
     var t = store.get('path').replace(/(\d{4})\/?(\d{2})\/?(\d{2})\/?(\d+)/, function (match, year, month, day, hour) {
       return year + '-' + month + '-' + day + 'T' + String(Math.round(hour / 3) * 3).padStart(2, 0) + ':00:00Z';
     });
-    extra.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">' + translate('Possible climb', 'Dostupy') + '</span>:' + ' <a class="climb" href="http://www.xcmeteo.net/?p=' + p + ',t=' + t + ',s=' + encodeURIComponent(s) + '" target="_blank" title="' + translate('source', 'zdroj') + ': Windy ' + getModel() + '">' + (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-') + '</a>');
+    extra.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">' + translate('Possible climb', 'Dostupy') + '</span>:' + ' <a class="climb" href="http://www.xcmeteo.net/?p=' + latLon.replace(/ /, 'x') + ',t=' + t + ',s=' + encodeURIComponent(s) + '" target="_blank" title="' + translate('source', 'zdroj') + ': Windy ' + model + '">' + (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-') + '</a>');
     tooltips.push(extra.join(' '));
     var div = document.createElement('div');
     div.style.whiteSpace = 'nowrap';
@@ -360,11 +356,11 @@ function () {
       div.querySelector('.climb').onclick = function () {
         var sounding = L.popup({
           maxWidth: 435
-        }).setLatLng([sites[0].latitude, sites[0].longitude]).setContent(showSounding(airData));
+        }).setLatLng(getLatLon(latLon)).setContent(showSounding(airData));
         map.addLayer(sounding);
 
         updateSounding = function updateSounding() {
-          var airData = airDatas[getModel()] && airDatas[getModel()][sites[0].latitude + ' ' + sites[0].longitude];
+          var airData = airDatas[getModel()] && airDatas[getModel()][latLon];
 
           if (airData && lastSounding != getModel() + store.get('path')) {
             sounding.setContent(showSounding(airData));
