@@ -259,8 +259,10 @@ function getTooltip(sites) {
 		wind = wind || getWind(latLon);
 		forecast = forecast || (forecasts[model] && forecasts[model][latLon]);
 		airData = airData || (airDatas[model] && airDatas[model][latLon]);
+		const color = getColor([site], wind);
+		const colors = {lime: 'green', yellow: 'orange', red: 'red'};
 		return '<b style="font-size: 1.25em;"><a' + getLaunchAttrs(site)
-			+ (isSiteForbidden(site) ? ' style="color: red;" title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') + '>' + html(site.name) + '</a></b>'
+			+ (color != 'red' || isSiteForbidden(site) ? ' style="color: ' + colors[color] + ';"' + (site.flying_status == 4 ? ' title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') : '') + '>' + html(site.name) + '</a></b>'
 			+ (site.altitude ? ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' : '')
 			+ (site.superelevation ? ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)' : (site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : ''))
 			+ (site.parkings && site.parkings.length
