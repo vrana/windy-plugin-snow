@@ -70,6 +70,8 @@ this.onopen = function () {
  *   wind_usable_from: number,
  *   wind_usable_to: number,
  *   link_meteo: string,
+ *   link_webcam: string,
+ *   parkings: Array<{name: string, latitude: number, longitude: number}>,
  * }} */
 let Site;
 /** @type {Object<string, Array<Site>>} key: latLon */
@@ -139,11 +141,11 @@ function init() {
 
 		for (const latLon in sites) {
 			const icon = newIcon(getIconUrl(sites[latLon], null), map.getZoom(), sites[latLon]);
-			const marker = L.marker(getLatLon(latLon), {icon, riseOnHover: true, title: groupByUrl(sites[latLon])
-				.map(site => site.name + (site.superelevation ? ' (' + site.superelevation + ' m)' : (site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : '')))
-				.join('\n')})
-				.addTo(map)
-			;
+			const marker = L.marker(getLatLon(latLon), {
+				icon,
+				riseOnHover: true,
+				title: groupByUrl(sites[latLon]).map(site => site.name + (site.superelevation ? ' (' + site.superelevation + ' m)' : (site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : ''))).join('\n'),
+			});
 			// Leaflet supports binding function but that function is called only the first time the popup is opened.
 			marker.bindPopup(getTooltip(sites[latLon]), {minWidth: 200, maxWidth: 400});
 			// Leaflet tooltips close when you hover the tooltip and they work poorly on mobile. Use popup instead.
@@ -174,7 +176,9 @@ function init() {
 function redraw() {
 	interpolator(interpolate => {
 		for (const latLon in markers) {
-			if (map.getBounds().contains(getLatLon(latLon))) {
+			if (map.getZoom() < 8 || !map.getBounds().contains(getLatLon(latLon))) {
+				markers[latLon].remove();
+			} else {
 				if (!winds[getWindsKey(latLon)]) {
 					if (store.get('overlay') == 'wind') {
 						// If the displayed overlay is 'wind' then use it.
@@ -188,6 +192,7 @@ function redraw() {
 					}
 				}
 				updateMarker(latLon);
+				markers[latLon].addTo(map);
 			}
 		}
 		if (activeMarker) {

@@ -158,7 +158,7 @@ function () {
           title: groupByUrl(sites[latLon]).map(function (site) {
             return site.name + (site.superelevation ? ' (' + site.superelevation + ' m)' : site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : '');
           }).join('\n')
-        }).addTo(map);
+        });
         marker.bindPopup(getTooltip(sites[latLon]), {
           minWidth: 200,
           maxWidth: 400
@@ -198,7 +198,9 @@ function () {
   function redraw() {
     interpolator(function (interpolate) {
       for (var latLon in markers) {
-        if (map.getBounds().contains(getLatLon(latLon))) {
+        if (map.getZoom() < 8 || !map.getBounds().contains(getLatLon(latLon))) {
+          markers[latLon].remove();
+        } else {
           if (!winds[getWindsKey(latLon)]) {
             if (store.get('overlay') == 'wind') {
               var data = interpolate(getLatLon(latLon));
@@ -211,6 +213,7 @@ function () {
           }
 
           updateMarker(latLon);
+          markers[latLon].addTo(map);
         }
       }
 
