@@ -22,7 +22,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -118,7 +118,7 @@ function () {
       try {
         launchLoop: for (_iterator.s(); !(_step = _iterator.n()).done;) {
           var site = _step.value;
-          site.wind_usable = site.wind_usable || [[site.wind_usable_from, site.wind_usable_to]];
+          site.wind_usable = site.wind_usable || [site.wind_usable_from != null ? [site.wind_usable_from, site.wind_usable_to] : [0, 360]];
 
           for (var lat = Math.round(site.latitude - .5); lat <= Math.round(site.latitude + .5); lat++) {
             for (var lon = Math.round(site.longitude - .5); lon <= Math.round(site.longitude + .5); lon++) {

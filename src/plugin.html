@@ -120,7 +120,7 @@ function init() {
 	fetch(getApiUrl()).then(response => response.json()).then(launch => {
 		const sitesLatLon = {}; // latLonRounded: [latLon]
 		launchLoop: for (const site of launch.data) {
-			site.wind_usable = site.wind_usable || [[site.wind_usable_from, site.wind_usable_to]];
+			site.wind_usable = site.wind_usable || [site.wind_usable_from != null ? [site.wind_usable_from, site.wind_usable_to] : [0, 360]];
 			for (let lat = Math.round(site.latitude - .5); lat <= Math.round(site.latitude + .5); lat++) { // Search only in nearby squares.
 				for (let lon = Math.round(site.longitude - .5); lon <= Math.round(site.longitude + .5); lon++) {
 					if (sitesLatLon[lat + ' ' + lon]) {
