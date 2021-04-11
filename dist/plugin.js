@@ -1,6 +1,14 @@
 "use strict";
 
-function _createForOfIteratorHelper(o) { if (typeof Symbol === "undefined" || o[Symbol.iterator] == null) { if (Array.isArray(o) || (o = _unsupportedIterableToArray(o))) { var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e) { throw _e; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var it, normalCompletion = true, didErr = false, err; return { s: function s() { it = o[Symbol.iterator](); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e2) { didErr = true; err = _e2; }, f: function f() { try { if (!normalCompletion && it["return"] != null) it["return"](); } finally { if (didErr) throw err; } } }; }
+function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest(); }
+
+function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
+
+function _iterableToArrayLimit(arr, i) { if (typeof Symbol === "undefined" || !(Symbol.iterator in Object(arr))) return; var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"] != null) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
+
+function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
+
+function _createForOfIteratorHelper(o) { if (typeof Symbol === "undefined" || o[Symbol.iterator] == null) { if (Array.isArray(o) || (o = _unsupportedIterableToArray(o))) { var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e2) { throw _e2; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var it, normalCompletion = true, didErr = false, err; return { s: function s() { it = o[Symbol.iterator](); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e3) { didErr = true; err = _e3; }, f: function f() { try { if (!normalCompletion && it["return"] != null) it["return"](); } finally { if (didErr) throw err; } } }; }
 
 function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(n); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
 
@@ -14,13 +22,13 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "1.5.0",
+  "version": "2.0.0",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vrana/windy-plugin-pg-mapa"
   },
-  "description": "Windy plugin for paragliding takeoffs in Czechia and Slovakia.",
+  "description": "Windy plugin for paragliding takeoffs in Europe.",
   "displayName": "Paragliding Mapa"
 },
 /* HTML */
@@ -110,6 +118,7 @@ function () {
       try {
         launchLoop: for (_iterator.s(); !(_step = _iterator.n()).done;) {
           var site = _step.value;
+          site.wind_usable = site.wind_usable || [[site.wind_usable_from, site.wind_usable_to]];
 
           for (var lat = Math.round(site.latitude - .5); lat <= Math.round(site.latitude + .5); lat++) {
             for (var lon = Math.round(site.longitude - .5); lon <= Math.round(site.longitude + .5); lon++) {
@@ -155,7 +164,7 @@ function () {
         var marker = L.marker(getLatLon(latLon), {
           icon: icon,
           riseOnHover: true,
-          title: groupByUrl(sites[latLon]).map(function (site) {
+          title: sites[latLon].map(function (site) {
             return site.name + (site.superelevation ? ' (' + site.superelevation + ' m)' : site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : '');
           }).join('\n')
         });
@@ -260,18 +269,12 @@ function () {
     markers[latLon].setPopupContent(getTooltip(sites[latLon]));
   }
 
-  function groupByUrl(sites) {
-    return Object.values(Object.fromEntries(sites.map(function (site) {
-      return [site.url, site];
-    })));
-  }
-
   function getTooltip(sites) {
     var wind;
     var forecast;
     var airData;
     var model = getModel();
-    var tooltips = groupByUrl(sites).map(function (site) {
+    var tooltips = sites.map(function (site) {
       var latLon = site.latitude + ' ' + site.longitude;
       wind = wind || getWind(latLon);
       forecast = forecast || forecasts[model] && forecasts[model][latLon];
@@ -300,7 +303,7 @@ function () {
     extra = [];
 
     function addLinks(links, title, icon) {
-      var meteoLinks = (links || '').matchAll(/(https?:\/\/\S+\w)( \([^()]+\))?/g);
+      var meteoLinks = (links || '').matchAll(/(https?:\/\/[^\s,;]+\w)( \([^()]+\))?/g);
       Array.from(meteoLinks).forEach(function (link) {
         return extra.push('<a href="' + html(link[1]) + '" class="iconfont" style="vertical-align: middle;" title="' + title + html(link[2] || '') + '" target="_blank">' + icon + '</a>');
       });
@@ -410,8 +413,24 @@ function () {
     try {
       for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
         var site = _step5.value;
-        var color = getColor([site], wind);
-        svg += (site.wind_usable_to - site.wind_usable_from >= 359 ? '<circle cx="19" cy="19" r="18" fill="' + color + '"/>' : getCircleSlice(site.wind_usable_from - 90, site.wind_usable_to - 90, 38, color)) + '\n';
+
+        var _iterator6 = _createForOfIteratorHelper(site.wind_usable),
+            _step6;
+
+        try {
+          for (_iterator6.s(); !(_step6 = _iterator6.n()).done;) {
+            var _step6$value = _slicedToArray(_step6.value, 2),
+                from = _step6$value[0],
+                to = _step6$value[1];
+
+            var color = getColor([site], wind);
+            svg += (to - from >= 359 ? '<circle cx="19" cy="19" r="18" fill="' + color + '"/>' : getCircleSlice(from - 90, to - 90, 38, color)) + '\n';
+          }
+        } catch (err) {
+          _iterator6.e(err);
+        } finally {
+          _iterator6.f();
+        }
       }
     } catch (err) {
       _iterator5.e(err);
@@ -454,30 +473,42 @@ function () {
   function getDirIndex(sites, dir) {
     var result = 2;
 
-    var _iterator6 = _createForOfIteratorHelper(sites),
-        _step6;
+    var _iterator7 = _createForOfIteratorHelper(sites),
+        _step7;
 
     try {
-      for (_iterator6.s(); !(_step6 = _iterator6.n()).done;) {
-        var site = _step6.value;
+      for (_iterator7.s(); !(_step7 = _iterator7.n()).done;) {
+        var site = _step7.value;
 
         if (isSiteForbidden(site)) {
           continue;
         }
 
-        var from = site.wind_usable_from;
-        var to = site.wind_usable_to;
+        var _iterator8 = _createForOfIteratorHelper(site.wind_usable),
+            _step8;
 
-        if (isDirIn(dir, from, to)) {
-          return 0;
-        } else if (isDirIn(dir, from, to, 10)) {
-          result = 1;
+        try {
+          for (_iterator8.s(); !(_step8 = _iterator8.n()).done;) {
+            var _step8$value = _slicedToArray(_step8.value, 2),
+                from = _step8$value[0],
+                to = _step8$value[1];
+
+            if (isDirIn(dir, from, to)) {
+              return 0;
+            } else if (isDirIn(dir, from, to, 10)) {
+              result = 1;
+            }
+          }
+        } catch (err) {
+          _iterator8.e(err);
+        } finally {
+          _iterator8.f();
         }
       }
     } catch (err) {
-      _iterator6.e(err);
+      _iterator7.e(err);
     } finally {
-      _iterator6.f();
+      _iterator7.f();
     }
 
     return result;
@@ -603,14 +634,14 @@ function () {
     var prev;
     var segments = [];
 
-    var _iterator7 = _createForOfIteratorHelper(layers.wind_u.map(function (u, i) {
+    var _iterator9 = _createForOfIteratorHelper(layers.wind_u.map(function (u, i) {
       return [(180 * Math.atan2(-layers.wind_v[i][0], u[0]) / Math.PI - 90 + 360) % 360, u[1]];
     })),
-        _step7;
+        _step9;
 
     try {
-      for (_iterator7.s(); !(_step7 = _iterator7.n()).done;) {
-        var dir = _step7.value;
+      for (_iterator9.s(); !(_step9 = _iterator9.n()).done;) {
+        var dir = _step9.value;
 
         if (prev) {
           if (Math.abs(prev[0] - dir[0]) <= 180) {
@@ -624,9 +655,9 @@ function () {
         prev = dir;
       }
     } catch (err) {
-      _iterator7.e(err);
+      _iterator9.e(err);
     } finally {
-      _iterator7.f();
+      _iterator9.f();
     }
 
     return segments;
@@ -698,12 +729,12 @@ function () {
       return [20 + Math.sqrt(Math.pow(u[0], 2) + Math.pow(layers.wind_v[i][0], 2)) * 25, u[1]];
     }), '#293', 1.5);
 
-    var _iterator8 = _createForOfIteratorHelper(splitWindDir(layers)),
-        _step8;
+    var _iterator10 = _createForOfIteratorHelper(splitWindDir(layers)),
+        _step10;
 
     try {
-      for (_iterator8.s(); !(_step8 = _iterator8.n()).done;) {
-        var segment = _step8.value;
+      for (_iterator10.s(); !(_step10 = _iterator10.n()).done;) {
+        var segment = _step10.value;
         svgLine(g, segment.map(function (a) {
           return [20 + a[0] / 360 * 400, a[1]];
         }), '#52bea8', 1.5, {
@@ -711,9 +742,9 @@ function () {
         });
       }
     } catch (err) {
-      _iterator8.e(err);
+      _iterator10.e(err);
     } finally {
-      _iterator8.f();
+      _iterator10.f();
     }
 
     svgLine(svg, [[20, 0], [420, 0]], '#555', .5, {
@@ -721,22 +752,22 @@ function () {
       'class': 'guideline'
     }).style.visibility = 'hidden';
 
-    for (var _i = Math.ceil(ground / 1000); _i <= ceiling / 1000; _i++) {
-      svgText(svg, _i + 'km', 15, 10 + ceiling / 10 - _i * 100, '#555');
+    for (var _i2 = Math.ceil(ground / 1000); _i2 <= ceiling / 1000; _i2++) {
+      svgText(svg, _i2 + 'km', 15, 10 + ceiling / 10 - _i2 * 100, '#555');
     }
 
     var xAxis = {};
 
-    for (var _i2 = maxTemp; _i2 >= maxTemp - 20; _i2 -= 5) {
-      xAxis[420 - (maxTemp - _i2) * 10] = {
-        text: _i2 + '°C',
+    for (var _i3 = maxTemp; _i3 >= maxTemp - 20; _i3 -= 5) {
+      xAxis[420 - (maxTemp - _i3) * 10] = {
+        text: _i3 + '°C',
         color: '#a22'
       };
     }
 
-    for (var _i3 = 0; _i3 <= 6; _i3 += 2) {
-      xAxis[20 + _i3 * 25] = {
-        text: _i3 + 'm/s',
+    for (var _i4 = 0; _i4 <= 6; _i4 += 2) {
+      xAxis[20 + _i4 * 25] = {
+        text: _i4 + 'm/s',
         color: '#293'
       };
     }

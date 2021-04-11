@@ -67,8 +67,9 @@ this.onopen = function () {
  *   flights: number,
  *   flying_status: number,
  *   active: number,
- *   wind_usable_from: number,
- *   wind_usable_to: number,
+ *   wind_usable_from: ?number,
+ *   wind_usable_to: ?number,
+ *   wind_usable: ?Array<[number, number]>,
  *   link_meteo: string,
  *   link_webcam: string,
  *   parkings: Array<{name: string, latitude: number, longitude: number}>,
@@ -119,6 +120,7 @@ function init() {
 	fetch(getApiUrl()).then(response => response.json()).then(launch => {
 		const sitesLatLon = {}; // latLonRounded: [latLon]
 		launchLoop: for (const site of launch.data) {
+			site.wind_usable = site.wind_usable || [[site.wind_usable_from, site.wind_usable_to]];
 			for (let lat = Math.round(site.latitude - .5); lat <= Math.round(site.latitude + .5); lat++) { // Search only in nearby squares.
 				for (let lon = Math.round(site.longitude - .5); lon <= Math.round(site.longitude + .5); lon++) {
 					if (sitesLatLon[lat + ' ' + lon]) {
@@ -144,7 +146,7 @@ function init() {
 			const marker = L.marker(getLatLon(latLon), {
 				icon,
 				riseOnHover: true,
-				title: groupByUrl(sites[latLon]).map(site => site.name + (site.superelevation ? ' (' + site.superelevation + ' m)' : (site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : ''))).join('\n'),
+				title: sites[latLon].map(site => site.name + (site.superelevation ? ' (' + site.superelevation + ' m)' : (site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : ''))).join('\n'),
 			});
 			// Leaflet supports binding function but that function is called only the first time the popup is opened.
 			marker.bindPopup(getTooltip(sites[latLon]), {minWidth: 200, maxWidth: 400});
@@ -242,14 +244,6 @@ function updateMarker(latLon) {
 	markers[latLon].setPopupContent(getTooltip(sites[latLon]));
 }
 
-/** Group sites with different usable winds but same url (useful from XContest takeoffs).
- * @param {Array<Site>} sites
- * @return {Array<Site>}
- */
-function groupByUrl(sites) {
-	return Object.values(Object.fromEntries(sites.map(site => [site.url, site])));
-}
-
 /** Gets tooltip with site names, wind info and forecast.
  * @param {Array<Site>} sites
  * @return {HTMLElement}
@@ -259,7 +253,7 @@ function getTooltip(sites) {
 	let forecast;
 	let airData;
 	const model = getModel();
-	const tooltips = groupByUrl(sites).map(site => {
+	const tooltips = sites.map(site => {
 		// Site latLon might be slightly different from wind latLon due to a utils.isNear call. However one will eventually match.
 		const latLon = site.latitude + ' ' + site.longitude;
 		wind = wind || getWind(latLon);
@@ -303,7 +297,7 @@ function getTooltip(sites) {
 	tooltips.push(extra.join(' '));
 	extra = [];
 	function addLinks(links, title, icon) {
-		const meteoLinks = (links || '').matchAll(/(https?:\/\/\S+\w)( \([^()]+\))?/g);
+		const meteoLinks = (links || '').matchAll(/(https?:\/\/[^\s,;]+\w)( \([^()]+\))?/g);
 		Array.from(meteoLinks).forEach(link => extra.push('<a href="' + html(link[1]) + '" class="iconfont" style="vertical-align: middle;" title="' + title + html(link[2] || '') + '" target="_blank">' + icon + '</a>'));
 	}
 	addLinks(sites[0].link_meteo, translate('weather station', 'meteostanice'), '');
@@ -377,11 +371,13 @@ function getForecast(forecast) {
 function getIconUrl(sites, wind) {
 	let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38">\n';
 	for (const site of sites) {
-		const color = getColor([site], wind);
-		svg += (site.wind_usable_to - site.wind_usable_from >= 359
-			? '<circle cx="19" cy="19" r="18" fill="' + color + '"/>'
-			: getCircleSlice(site.wind_usable_from - 90, site.wind_usable_to - 90, 38, color)
-		) + '\n';
+		for (const [from, to] of site.wind_usable) {
+			const color = getColor([site], wind);
+			svg += (to - from >= 359
+				? '<circle cx="19" cy="19" r="18" fill="' + color + '"/>'
+				: getCircleSlice(from - 90, to - 90, 38, color)
+			) + '\n';
+		}
 	}
 	svg += '<circle cx="19" cy="19" r="18" stroke="#333" stroke-width="2" fill-opacity="0"/>\n</svg>';
 	return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
@@ -435,12 +431,12 @@ function getDirIndex(sites, dir) {
 		if (isSiteForbidden(site)) {
 			continue;
 		}
-		const from = site.wind_usable_from;
-		const to = site.wind_usable_to;
-		if (isDirIn(dir, from, to)) {
-			return 0;
-		} else if (isDirIn(dir, from, to, 10)) {
-			result = 1;
+		for (const [from, to] of site.wind_usable) {
+			if (isDirIn(dir, from, to)) {
+				return 0;
+			} else if (isDirIn(dir, from, to, 10)) {
+				result = 1;
+			}
 		}
 	}
 	return result;
