@@ -609,13 +609,19 @@ function showSounding(airData) {
 	}
 	layers.temp = layers.temp.map(a => [420 + (a[0] + zeroK - maxTemp) * 10, a[1]]);
 	layers.dewpoint = layers.dewpoint.map(a => [420 + (a[0] + zeroK - maxTemp) * 10, a[1]]);
-	svgLine(svg, [layers.temp[0], [layers.temp[0][0] - (ceiling - ground) * 9.8 / 100, 0]], '#db5', 1);
-	svgLine(svg, [layers.dewpoint[0], [layers.dewpoint[0][0] - (ceiling - ground) * 9.8 / 5 / 100, 0]], '#db5', 1); // 5 is used by XCMeteo.
-	svgLine(svg, layers.temp, '#a22', 2);
-	svgLine(svg, layers.dewpoint, '#23a', 2);
-	svgLine(svg, layers.wind_u.map((u, i) => [20 + Math.sqrt(Math.pow(u[0], 2) + Math.pow(layers.wind_v[i][0], 2)) * 25, u[1]]), '#293', 1.5);
+	const clipPath = svg.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'clipPath'));
+	clipPath.id = 'clip';
+	const polygon = clipPath.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'polygon'));
+	polygon.setAttribute('points', '20,0 420,0 420,400 20,400 20,0');
+	const g = svg.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'g'));
+	g.setAttribute('clip-path', 'url(#clip)');
+	svgLine(g, [layers.temp[0], [layers.temp[0][0] - (ceiling - ground) * 9.8 / 100, 0]], '#db5', 1);
+	svgLine(g, [layers.dewpoint[0], [layers.dewpoint[0][0] - (ceiling - ground) * 9.8 / 5 / 100, 0]], '#db5', 1); // 5 is used by XCMeteo.
+	svgLine(g, layers.temp, '#a22', 2);
+	svgLine(g, layers.dewpoint, '#23a', 2);
+	svgLine(g, layers.wind_u.map((u, i) => [20 + Math.sqrt(Math.pow(u[0], 2) + Math.pow(layers.wind_v[i][0], 2)) * 25, u[1]]), '#293', 1.5);
 	for (const segment of splitWindDir(layers)) {
-		svgLine(svg, segment.map(a => [20 + a[0] / 360 * 400, a[1]]), '#52bea8', 1.5, {'stroke-dasharray': '5 5'});
+		svgLine(g, segment.map(a => [20 + a[0] / 360 * 400, a[1]]), '#52bea8', 1.5, {'stroke-dasharray': '5 5'});
 	}
 	svgLine(svg, [[20, 0], [420, 0]], '#555', .5, {'stroke-dasharray': '5 1.5', 'class': 'guideline'}).style.visibility = 'hidden';
 	for (let i = Math.ceil(ground / 1000); i <= ceiling / 1000; i++) {

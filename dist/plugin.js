@@ -681,11 +681,17 @@ function () {
     layers.dewpoint = layers.dewpoint.map(function (a) {
       return [420 + (a[0] + zeroK - maxTemp) * 10, a[1]];
     });
-    svgLine(svg, [layers.temp[0], [layers.temp[0][0] - (ceiling - ground) * 9.8 / 100, 0]], '#db5', 1);
-    svgLine(svg, [layers.dewpoint[0], [layers.dewpoint[0][0] - (ceiling - ground) * 9.8 / 5 / 100, 0]], '#db5', 1);
-    svgLine(svg, layers.temp, '#a22', 2);
-    svgLine(svg, layers.dewpoint, '#23a', 2);
-    svgLine(svg, layers.wind_u.map(function (u, i) {
+    var clipPath = svg.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'clipPath'));
+    clipPath.id = 'clip';
+    var polygon = clipPath.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'polygon'));
+    polygon.setAttribute('points', '20,0 420,0 420,400 20,400 20,0');
+    var g = svg.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'g'));
+    g.setAttribute('clip-path', 'url(#clip)');
+    svgLine(g, [layers.temp[0], [layers.temp[0][0] - (ceiling - ground) * 9.8 / 100, 0]], '#db5', 1);
+    svgLine(g, [layers.dewpoint[0], [layers.dewpoint[0][0] - (ceiling - ground) * 9.8 / 5 / 100, 0]], '#db5', 1);
+    svgLine(g, layers.temp, '#a22', 2);
+    svgLine(g, layers.dewpoint, '#23a', 2);
+    svgLine(g, layers.wind_u.map(function (u, i) {
       return [20 + Math.sqrt(Math.pow(u[0], 2) + Math.pow(layers.wind_v[i][0], 2)) * 25, u[1]];
     }), '#293', 1.5);
 
@@ -695,7 +701,7 @@ function () {
     try {
       for (_iterator8.s(); !(_step8 = _iterator8.n()).done;) {
         var segment = _step8.value;
-        svgLine(svg, segment.map(function (a) {
+        svgLine(g, segment.map(function (a) {
           return [20 + a[0] / 360 * 400, a[1]];
         }), '#52bea8', 1.5, {
           'stroke-dasharray': '5 5'
