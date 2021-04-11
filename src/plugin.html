@@ -583,9 +583,7 @@ function showSounding(airData) {
 	svg.style.height = '420px';
 	for (let i = 0; i <= 400; i += 50) {
 		svgLine(svg, [[20, i], [420, i]], '#bbb', .5);
-	}
-	for (let i = 20; i <= 420; i += 50) {
-		svgLine(svg, [[i, 0], [i, 400]], '#bbb', .5);
+		svgLine(svg, [[20 + i, 0], [20 + i, 400]], '#bbb', .5);
 	}
 	const {header, data} = airData;
 	const hour = getCurrentHour(airData);
@@ -620,7 +618,7 @@ function showSounding(airData) {
 		svgLine(svg, segment.map(a => [20 + a[0] / 360 * 400, a[1]]), '#52bea8', 1.5, {'stroke-dasharray': '5 5'});
 	}
 	svgLine(svg, [[20, 0], [420, 0]], '#555', .5, {'stroke-dasharray': '5 1.5', 'class': 'guideline'}).style.visibility = 'hidden';
-	for (let i = 1; i <= ceiling / 1000; i++) {
+	for (let i = Math.ceil(ground / 1000); i <= ceiling / 1000; i++) {
 		svgText(svg, i + 'km', 15, 10 + ceiling / 10 - i * 100, '#555'); // Thin space: ' '.
 	}
 	const xAxis = {};

@@ -636,10 +636,7 @@ function () {
 
     for (var i = 0; i <= 400; i += 50) {
       svgLine(svg, [[20, i], [420, i]], '#bbb', .5);
-    }
-
-    for (var _i = 20; _i <= 420; _i += 50) {
-      svgLine(svg, [[_i, 0], [_i, 400]], '#bbb', .5);
+      svgLine(svg, [[20 + i, 0], [20 + i, 400]], '#bbb', .5);
     }
 
     var header = airData.header,
@@ -715,22 +712,22 @@ function () {
       'class': 'guideline'
     }).style.visibility = 'hidden';
 
-    for (var _i2 = 1; _i2 <= ceiling / 1000; _i2++) {
-      svgText(svg, _i2 + 'km', 15, 10 + ceiling / 10 - _i2 * 100, '#555');
+    for (var _i = Math.ceil(ground / 1000); _i <= ceiling / 1000; _i++) {
+      svgText(svg, _i + 'km', 15, 10 + ceiling / 10 - _i * 100, '#555');
     }
 
     var xAxis = {};
 
-    for (var _i3 = maxTemp; _i3 >= maxTemp - 20; _i3 -= 5) {
-      xAxis[420 - (maxTemp - _i3) * 10] = {
-        text: _i3 + '°C',
+    for (var _i2 = maxTemp; _i2 >= maxTemp - 20; _i2 -= 5) {
+      xAxis[420 - (maxTemp - _i2) * 10] = {
+        text: _i2 + '°C',
         color: '#a22'
       };
     }
 
-    for (var _i4 = 0; _i4 <= 6; _i4 += 2) {
-      xAxis[20 + _i4 * 25] = {
-        text: _i4 + 'm/s',
+    for (var _i3 = 0; _i3 <= 6; _i3 += 2) {
+      xAxis[20 + _i3 * 25] = {
+        text: _i3 + 'm/s',
         color: '#293'
       };
     }
