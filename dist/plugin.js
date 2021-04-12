@@ -363,6 +363,15 @@ function () {
       };
     }
 
+    var nextWheelMove = Date.now();
+
+    div.onwheel = function (event) {
+      if (Date.now() > nextWheelMove) {
+        store.set('timestamp', store.get('timestamp') + Math.sign(event.deltaY) * 60 * 60 * 1000);
+        nextWheelMove = Date.now() + 100;
+      }
+    };
+
     return div;
   }
 

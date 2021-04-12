@@ -330,6 +330,13 @@ function getTooltip(latLon) {
 			return false;
 		};
 	}
+	let nextWheelMove = Date.now();
+	div.onwheel = event => {
+		if (Date.now() > nextWheelMove) {
+			store.set('timestamp', store.get('timestamp') + Math.sign(event.deltaY) * 60*60*1000);
+			nextWheelMove = Date.now() + 100;
+		}
+	};
 	return div;
 }
 
