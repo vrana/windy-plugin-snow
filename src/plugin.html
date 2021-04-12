@@ -255,10 +255,9 @@ function getTooltip(latLon) {
 	const forecast = forecasts[model] && forecasts[model][latLon];
 	const airData = airDatas[model] && airDatas[model][latLon];
 	const tooltips = localSites.map(site => {
-		const color = getColor([site], wind);
-		const colors = {lime: 'green', yellow: 'orange', red: 'red'};
 		return '<b style="font-size: 1.25em;"><a' + getLaunchAttrs(site)
-			+ (color != 'red' || isSiteForbidden(site) ? ' style="color: ' + colors[color] + ';"' + (site.flying_status == 4 ? ' title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') : '') + '>' + html(site.name) + '</a></b>'
+			+ (isSiteForbidden(site) ? ' style="color: red;"' + (site.flying_status == 4 ? ' title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') : '') + '>' + html(site.name) + '</a></b>'
+			+ (localSites.length > 1 ? ' <img src="' + getIconUrl([site], wind, ['green', 'orange', 'red']) + '" width="12" height="12" alt="">' : '')
 			+ (site.altitude ? ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' : '')
 			+ (site.superelevation ? ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)' : (site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : ''))
 			+ (site.parkings && site.parkings.length
@@ -362,13 +361,14 @@ function getForecast(forecast) {
 /** Gets URL with SVG image.
  * @param {Array<Site>} sites
  * @param {Wind} wind
+ * @param {Array<string>} colors
  * @return {string}
  */
-function getIconUrl(sites, wind) {
+function getIconUrl(sites, wind, colors = ['lime', 'yellow', 'red']) {
 	let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38">\n';
 	for (const site of sites) {
 		for (const [from, to] of site.wind_usable) {
-			const color = getColor([site], wind);
+			const color = getColor([site], wind, colors);
 			svg += (to - from >= 359
 				? '<circle cx="19" cy="19" r="18" fill="' + color + '"/>'
 				: getCircleSlice(from - 90, to - 90, 38, color)
@@ -382,10 +382,10 @@ function getIconUrl(sites, wind) {
 /** Gets color for wind.
  * @param {Array<Site>} sites
  * @param {Wind} wind
+ * @param {Array<string>} colors
  * @return {string}
  */
-function getColor(sites, wind) {
-	const colors = ['lime', 'yellow', 'red'];
+function getColor(sites, wind, colors = ['lime', 'yellow', 'red']) {
 	if (sites.every(isSiteForbidden)) {
 		return colors[2];
 	}
