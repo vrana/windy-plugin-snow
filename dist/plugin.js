@@ -689,10 +689,10 @@ function () {
 
         if (gh >= ground) {
           layers[match[1]].push([data[key][hour], (ceiling - gh) / 10]);
-        }
 
-        if (match[1] == 'temp' || match[1] == 'dewpoint') {
-          maxTemp = Math.max(5 * Math.ceil((data[key][hour] + zeroK) / 5), maxTemp);
+          if (match[1] == 'temp' || match[1] == 'dewpoint') {
+            maxTemp = Math.max(5 * Math.ceil((data[key][hour] + zeroK) / 5), maxTemp);
+          }
         }
       }
     }
