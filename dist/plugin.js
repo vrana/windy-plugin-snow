@@ -22,7 +22,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -307,6 +307,7 @@ function () {
 
     addLinks(localSites[0].link_meteo, translate('weather station', 'meteostanice'), '');
     addLinks(localSites[0].link_webcam, translate('webcam', 'webkamera'), 'l');
+    extra.push('<a href="https://www.xcontest.org/world/en/flights-search/?list[sort]=pts&filter[point]=' + latLon.replace(/(.+) (.+)/, '$2+$1') + '&filter[radius]=1100&filter[date_mode]=period&filter[date]=2019-10-01&filter[date_to]=2020-09-30#filter-mode"' + (localSites[0].flights != null ? ' title="' + localSites[0].flights + ' ' + translate('flights', 'letů') + '"' : '') + ' target="_blank"><img src="https://s.xcontest.org/img/xcontest.gif" width="25" height="12" alt="XContest" style="vertical-align: middle;"></a>');
     var s = localSites[0].name;
 
     if (localSites.length > 1) {
