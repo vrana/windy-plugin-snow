@@ -121,8 +121,11 @@ function () {
           var site = _step.value;
           site.wind_usable = site.wind_usable_from != null ? [[site.wind_usable_from, site.wind_usable_to]] : site.wind_usable;
 
-          for (var lat = Math.round(site.latitude - .5); lat <= Math.round(site.latitude + .5); lat++) {
-            for (var lon = Math.round(site.longitude - .5); lon <= Math.round(site.longitude + .5); lon++) {
+          for (var y = -1; y <= 1; y += 2) {
+            for (var x = -1; x <= 1; x += 2) {
+              var lat = (site.latitude + y / 20).toFixed(1);
+              var lon = (site.longitude + x / 20).toFixed(1);
+
               if (sitesLatLon[lat + ' ' + lon]) {
                 var _iterator2 = _createForOfIteratorHelper(sitesLatLon[lat + ' ' + lon]),
                     _step2;
@@ -149,7 +152,7 @@ function () {
           }
 
           sites[site.latitude + ' ' + site.longitude] = [site];
-          var latLonRounded = Math.round(site.latitude) + ' ' + Math.round(site.longitude);
+          var latLonRounded = site.latitude.toFixed(1) + ' ' + site.longitude.toFixed(1);
           sitesLatLon[latLonRounded] = sitesLatLon[latLonRounded] || [];
           sitesLatLon[latLonRounded].push(site.latitude + ' ' + site.longitude);
         }
