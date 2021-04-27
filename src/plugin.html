@@ -367,17 +367,18 @@ function getForecast(forecast) {
  * @return {string}
  */
 function getIconUrl(sites, wind, colors = ['lime', 'yellow', 'silver', 'red']) {
-	let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38">\n';
+	let svg = '';
 	for (const site of sites) {
 		for (const [from, to] of (site.wind_usable || [[0, 360]])) {
 			const color = getColor([site], wind, colors);
-			svg += (to - from >= 359
+			const circle = (to - from >= 359
 				? '<circle cx="19" cy="19" r="18" fill="' + color + '"/>'
 				: getCircleSlice(from - 90, to - 90, 38, color)
 			) + '\n';
+			svg = (color == colors[2] ? circle + svg : svg + circle);
 		}
 	}
-	svg += '<circle cx="19" cy="19" r="18" stroke="#333" stroke-width="2" fill-opacity="0"/>\n</svg>';
+	svg = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38">\n' + svg + '<circle cx="19" cy="19" r="18" stroke="#333" stroke-width="2" fill-opacity="0"/>\n</svg>';
 	return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
 }
 

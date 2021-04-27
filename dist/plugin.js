@@ -399,7 +399,7 @@ function () {
 
   function getIconUrl(sites, wind) {
     var colors = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : ['lime', 'yellow', 'silver', 'red'];
-    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38">\n';
+    var svg = '';
 
     var _iterator5 = _createForOfIteratorHelper(sites),
         _step5;
@@ -418,7 +418,8 @@ function () {
                 to = _step6$value[1];
 
             var color = getColor([site], wind, colors);
-            svg += (to - from >= 359 ? '<circle cx="19" cy="19" r="18" fill="' + color + '"/>' : getCircleSlice(from - 90, to - 90, 38, color)) + '\n';
+            var circle = (to - from >= 359 ? '<circle cx="19" cy="19" r="18" fill="' + color + '"/>' : getCircleSlice(from - 90, to - 90, 38, color)) + '\n';
+            svg = color == colors[2] ? circle + svg : svg + circle;
           }
         } catch (err) {
           _iterator6.e(err);
@@ -432,7 +433,7 @@ function () {
       _iterator5.f();
     }
 
-    svg += '<circle cx="19" cy="19" r="18" stroke="#333" stroke-width="2" fill-opacity="0"/>\n</svg>';
+    svg = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38">\n' + svg + '<circle cx="19" cy="19" r="18" stroke="#333" stroke-width="2" fill-opacity="0"/>\n</svg>';
     return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
   }
 
