@@ -515,13 +515,14 @@ function () {
   }
 
   function newIcon(url, zoom, site) {
-    var _site$0$flights, _site$0$flights2;
+    var _site$0$flights;
 
     var size = zoom > 9 ? 38 : zoom > 6 ? 19 : zoom > 4 ? 9 : 5;
+    var amount = (_site$0$flights = site[0].flights) !== null && _site$0$flights !== void 0 ? _site$0$flights : site[0].superelevation || 0;
 
-    if (((_site$0$flights = site[0].flights) !== null && _site$0$flights !== void 0 ? _site$0$flights : site[0].superelevation) < 10) {
+    if (amount < 10) {
       size /= 2;
-    } else if (((_site$0$flights2 = site[0].flights) !== null && _site$0$flights2 !== void 0 ? _site$0$flights2 : site[0].superelevation) < 100) {
+    } else if (amount < 100) {
       size *= 3 / 4;
     }
 

@@ -30,7 +30,7 @@ function getLaunchAttrs(site) {
 
 function getApiUrl() {
 	return 'https://pg.vrana.cz/xcontest/pgmapa.php?locale=' + translate('en', 'cs');
-//~ 	return 'https://pg.vrana.cz/earth/pgmapa.php';
+//~ 	return 'https://pg.vrana.cz/xcontest/pgearth.php';
 //~ 	return 'https://www.paragliding-mapa.cz/api/v0.1/launch?locale=' + translate('en', 'cs');
 //~ 	return 'https://pg.vrana.cz/xcontest/takeoffs.php?season=2021&country=CZ';
 //~ 	return 'https://pg.vrana.cz/xcontest/dhv.php';
@@ -460,9 +460,10 @@ function isDirIn(dir, from, to, tolerance = 0) {
  */
 function newIcon(url, zoom, site) {
 	let size = zoom > 9 ? 38 : zoom > 6 ? 19 : zoom > 4 ? 9 : 5;
-	if ((site[0].flights ?? site[0].superelevation) < 10) {
+	const amount = (site[0].flights ?? (site[0].superelevation || 0));
+	if (amount < 10) {
 		size /= 2;
-	} else if ((site[0].flights ?? site[0].superelevation) < 100) {
+	} else if (amount < 100) {
 		size *= 3/4;
 	}
 	return L.icon({
