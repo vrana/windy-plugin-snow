@@ -104,7 +104,7 @@ function () {
   var displaySounding = false;
 
   function init() {
-    if (Object.keys(markers).length) {
+    if (Object.keys(sites).length) {
       return;
     }
 
@@ -129,14 +129,13 @@ function () {
 
                 try {
                   for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
-                    var _latLon = _step2.value;
+                    var latLon = _step2.value;
 
-                    if (utils.isNear(getLatLon(_latLon), {
+                    if (utils.isNear(getLatLon(latLon), {
                       lat: site.latitude,
                       lon: site.longitude
                     })) {
-                      sites[_latLon].push(site);
-
+                      sites[latLon].push(site);
                       continue launchLoop;
                     }
                   }
@@ -160,41 +159,6 @@ function () {
         _iterator.f();
       }
 
-      var _loop = function _loop(latLon) {
-        var icon = newIcon(getIconUrl(sites[latLon], null), sites[latLon]);
-        var marker = L.marker(getLatLon(latLon), {
-          icon: icon,
-          riseOnHover: true,
-          title: sites[latLon].map(function (site) {
-            return site.name + (site.superelevation ? ' (' + site.superelevation + ' m)' : site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : '');
-          }).join('\n')
-        });
-        marker.bindPopup(getTooltip(latLon), {
-          minWidth: 200,
-          maxWidth: 400
-        });
-        marker.on('popupopen', function () {
-          activeMarker = marker;
-          loadForecast(latLon);
-          var model = getModel();
-          airDatas[model] = airDatas[model] || {};
-
-          if (!airDatas[model][latLon]) {
-            loadData('airData', Object.assign({
-              model: model
-            }, getLatLon(latLon))).then(function (airData) {
-              airDatas[model][latLon] = airData.data;
-              markers[latLon].setPopupContent(getTooltip(latLon));
-            });
-          }
-        });
-        markers[latLon] = marker;
-      };
-
-      for (var latLon in sites) {
-        _loop(latLon);
-      }
-
       map.on('popupclose', function () {
         return activeMarker = null;
       });
@@ -204,14 +168,48 @@ function () {
     });
   }
 
+  function createMarker(latLon) {
+    var marker = L.marker(getLatLon(latLon), {
+      icon: newIcon(getIconUrl(sites[latLon], null), sites[latLon]),
+      riseOnHover: true,
+      title: sites[latLon].map(function (site) {
+        return site.name + (site.superelevation ? ' (' + site.superelevation + ' m)' : site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : '');
+      }).join('\n')
+    });
+    marker.bindPopup(getTooltip(latLon), {
+      minWidth: 200,
+      maxWidth: 400
+    });
+    marker.on('popupopen', function () {
+      activeMarker = marker;
+      loadForecast(latLon);
+      var model = getModel();
+      airDatas[model] = airDatas[model] || {};
+
+      if (!airDatas[model][latLon]) {
+        loadData('airData', Object.assign({
+          model: model
+        }, getLatLon(latLon))).then(function (airData) {
+          airDatas[model][latLon] = airData.data;
+          markers[latLon].setPopupContent(getTooltip(latLon));
+        });
+      }
+    });
+    return marker;
+  }
+
   function redraw() {
     interpolator(function (interpolate) {
-      for (var latLon in markers) {
-        if (map.getZoom() < 5 || map.getZoom() < 8 && !sites[latLon].some(function (site) {
+      var mapBounds = map.getBounds();
+
+      for (var latLon in sites) {
+        if (map.getZoom() > 4 && (map.getZoom() > 7 || sites[latLon].some(function (site) {
           return site.flights > 100;
-        }) || !map.getBounds().contains(getLatLon(latLon))) {
-          markers[latLon].remove();
-        } else {
+        })) && mapBounds.contains(getLatLon(latLon))) {
+          if (!markers[latLon]) {
+            markers[latLon] = createMarker(latLon);
+          }
+
           if (!winds[getWindsKey(latLon)]) {
             if (store.get('overlay') == 'wind') {
               var data = interpolate(getLatLon(latLon));
@@ -225,6 +223,8 @@ function () {
 
           updateMarker(latLon);
           markers[latLon].addTo(map);
+        } else if (markers[latLon]) {
+          markers[latLon].remove();
         }
       }
 

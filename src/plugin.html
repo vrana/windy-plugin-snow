@@ -117,7 +117,7 @@ const airDatas = {};
 let displaySounding = false;
 
 function init() {
-	if (Object.keys(markers).length) {
+	if (Object.keys(sites).length) {
 		// Opening already loaded layer.
 		return;
 	}
@@ -145,45 +145,46 @@ function init() {
 			sitesLatLon[latLonRounded].push(site.latitude + ' ' + site.longitude);
 		}
 
-		for (const latLon in sites) {
-			const icon = newIcon(getIconUrl(sites[latLon], null), sites[latLon]);
-			const marker = L.marker(getLatLon(latLon), {
-				icon,
-				riseOnHover: true,
-				title: sites[latLon].map(site => site.name + (site.superelevation ? ' (' + site.superelevation + ' m)' : (site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : ''))).join('\n'),
-			});
-			// Leaflet supports binding function but that function is called only the first time the popup is opened.
-			marker.bindPopup(getTooltip(latLon), {minWidth: 200, maxWidth: 400});
-			// Leaflet tooltips close when you hover the tooltip and they work poorly on mobile. Use popup instead.
-			marker.on('popupopen', () => {
-				activeMarker = marker;
-				loadForecast(latLon);
-				const model = getModel();
-				airDatas[model] = airDatas[model] || {};
-				if (!airDatas[model][latLon]) {
-					loadData('airData', Object.assign({model}, getLatLon(latLon))).then(airData => {
-						// Cache: response has Expires: -1.
-						airDatas[model][latLon] = airData.data;
-						markers[latLon].setPopupContent(getTooltip(latLon));
-					});
-				}
-			});
-			markers[latLon] = marker;
-		}
 		map.on('popupclose', () => activeMarker = null);
-
 		redraw(); // Redraw might be finished before the data is loaded.
 		broadcast.on('redrawFinished', redraw);
 		onLaunchLoad();
 	});
 }
 
+function createMarker(latLon) {
+	const marker = L.marker(getLatLon(latLon), {
+		icon: newIcon(getIconUrl(sites[latLon], null), sites[latLon]),
+		riseOnHover: true,
+		title: sites[latLon].map(site => site.name + (site.superelevation ? ' (' + site.superelevation + ' m)' : (site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : ''))).join('\n'),
+	});
+	// Leaflet supports binding function but that function is called only the first time the popup is opened.
+	marker.bindPopup(getTooltip(latLon), {minWidth: 200, maxWidth: 400});
+	// Leaflet tooltips close when you hover the tooltip and they work poorly on mobile. Use popup instead.
+	marker.on('popupopen', () => {
+		activeMarker = marker;
+		loadForecast(latLon);
+		const model = getModel();
+		airDatas[model] = airDatas[model] || {};
+		if (!airDatas[model][latLon]) {
+			loadData('airData', Object.assign({model}, getLatLon(latLon))).then(airData => {
+				// Cache: response has Expires: -1.
+				airDatas[model][latLon] = airData.data;
+				markers[latLon].setPopupContent(getTooltip(latLon));
+			});
+		}
+	});
+	return marker;
+}
+
 function redraw() {
 	interpolator(interpolate => {
-		for (const latLon in markers) {
-			if (map.getZoom() < 5 || (map.getZoom() < 8 && !sites[latLon].some(site => site.flights > 100)) || !map.getBounds().contains(getLatLon(latLon))) {
-				markers[latLon].remove();
-			} else {
+		const mapBounds = map.getBounds();
+		for (const latLon in sites) {
+			if (map.getZoom() > 4 && (map.getZoom() > 7 || sites[latLon].some(site => site.flights > 100)) && mapBounds.contains(getLatLon(latLon))) {
+				if (!markers[latLon]) {
+					markers[latLon] = createMarker(latLon);
+				}
 				if (!winds[getWindsKey(latLon)]) {
 					if (store.get('overlay') == 'wind') {
 						// If the displayed overlay is 'wind' then use it.
@@ -198,6 +199,8 @@ function redraw() {
 				}
 				updateMarker(latLon);
 				markers[latLon].addTo(map);
+			} else if (markers[latLon]) {
+				markers[latLon].remove();
 			}
 		}
 		if (activeMarker) {
