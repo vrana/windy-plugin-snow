@@ -119,7 +119,7 @@ function () {
       try {
         launchLoop: for (_iterator.s(); !(_step = _iterator.n()).done;) {
           var site = _step.value;
-          site.wind_usable = site.wind_usable || [site.wind_usable_from != null ? [site.wind_usable_from, site.wind_usable_to] : [0, 360]];
+          site.wind_usable = site.wind_usable_from != null ? [[site.wind_usable_from, site.wind_usable_to]] : site.wind_usable;
 
           for (var lat = Math.round(site.latitude - .5); lat <= Math.round(site.latitude + .5); lat++) {
             for (var lon = Math.round(site.longitude - .5); lon <= Math.round(site.longitude + .5); lon++) {
@@ -275,7 +275,7 @@ function () {
     var forecast = forecasts[model] && forecasts[model][latLon];
     var airData = airDatas[model] && airDatas[model][latLon];
     var tooltips = localSites.map(function (site) {
-      return '<b style="font-size: 1.25em;"><a' + getLaunchAttrs(site) + (isSiteForbidden(site) ? ' style="color: red;"' + (site.flying_status == 4 ? ' title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') : '') + '>' + html(site.name) + '</a></b>' + (localSites.length > 1 ? ' <img src="' + getIconUrl([site], wind, ['green', 'orange', 'red']) + '" width="12" height="12" alt="">' : '') + (site.altitude ? ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' : '') + (site.superelevation ? ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)' : site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : '') + (site.parkings && site.parkings.length ? site.parkings.map(function (parking) {
+      return '<b style="font-size: 1.25em;"><a' + getLaunchAttrs(site) + (isSiteForbidden(site) ? ' style="color: red;"' + (site.flying_status == 4 ? ' title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') : '') + '>' + html(site.name) + '</a></b>' + (localSites.length > 1 ? ' <img src="' + getIconUrl([site], wind, ['green', 'orange', 'gray', 'red']) + '" width="12" height="12" alt="">' : '') + (site.altitude ? ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' : '') + (site.superelevation ? ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)' : site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : '') + (site.parkings && site.parkings.length ? site.parkings.map(function (parking) {
         return ' <a href="https://www.google.com/maps/dir/?api=1&destination=' + parking.latitude + ',' + parking.longitude + '" target="_blank"><img src="https://www.google.com/images/branding/product/ico/maps15_bnuw3a_32dp.ico" width="12" height="12" alt="" title="' + translate('parking', 'parkoviště') + html(parking.name == site.name && site.parkings.length == 1 ? '' : ' ' + parking.name) + '" style="vertical-align: middle;"></a>';
       }).join('') : ' <a href="https://www.google.com/maps/dir/?api=1&destination=' + site.latitude + ',' + site.longitude + '" target="_blank"><img src="https://www.google.com/images/branding/product/ico/maps15_bnuw3a_32dp.ico" width="12" height="12" alt="" title="' + translate('takeoff', 'startovačka') + '" style="vertical-align: middle;"></a>') + ' <a href="https://mapy.cz/turisticka?source=coor&id=' + site.longitude + ',' + site.latitude + '" target="_blank"><img src="https://mapy.cz/img/favicon/favicon.ico" width="12" height="12" alt="" title="' + translate('takeoff', 'startovačka') + '" style="vertical-align: middle;"></a>' + getLaunchExtra(site);
     });
@@ -283,7 +283,7 @@ function () {
     var extra = [];
 
     if (wind) {
-      var colors = ['green', 'orange', 'red'];
+      var colors = ['green', 'orange', 'gray', 'red'];
       var windHeight = ' ' + (store.get('level') == 'surface' || store.get('overlay') != 'wind' ? translate('on surface', 'na zemi') : translate('at', 'v') + ' ' + store.get('level'));
       extra.push('<a' + getWindAttrs(latLon) + '>' + '<span style="color: ' + colors[getDirIndex(localSites, wind.dir)] + ';" title="' + translate('wind direction', 'směr větru') + windHeight + '">' + '<span style="display: inline-block; transform: rotate(' + wind.dir + 'deg)">↓</span> ' + wind.dir + '°</span>' + ' <span style="color: ' + colors[getSpeedIndex(wind.wind)] + ';" title="' + translate('wind speed', 'rychlost větru') + windHeight + '">' + wind.wind.toFixed(1) + ' m/s' + (data && data.gust != null ? ',</span> <span style="color: ' + colors[getSpeedIndex(data.gust - 4)] + ';" title="' + translate('gusts on surface', 'nárazy na zemi') + '">G: ' + data.gust.toFixed(1) + ' m/s' : '') + '</span></a>');
     }
@@ -398,7 +398,7 @@ function () {
   }
 
   function getIconUrl(sites, wind) {
-    var colors = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : ['lime', 'yellow', 'red'];
+    var colors = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : ['lime', 'yellow', 'silver', 'red'];
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38">\n';
 
     var _iterator5 = _createForOfIteratorHelper(sites),
@@ -408,7 +408,7 @@ function () {
       for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
         var site = _step5.value;
 
-        var _iterator6 = _createForOfIteratorHelper(site.wind_usable),
+        var _iterator6 = _createForOfIteratorHelper(site.wind_usable || [[0, 360]]),
             _step6;
 
         try {
@@ -437,7 +437,7 @@ function () {
   }
 
   function getColor(sites, wind) {
-    var colors = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : ['lime', 'yellow', 'red'];
+    var colors = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : ['lime', 'yellow', 'silver', 'red'];
 
     if (sites.every(isSiteForbidden)) {
       return colors[2];
@@ -456,7 +456,7 @@ function () {
 
   function getSpeedIndex(speed) {
     if (speed.toFixed(1) >= 8) {
-      return 2;
+      return 3;
     } else if (speed.toFixed(1) >= 4) {
       return 1;
     }
@@ -473,6 +473,12 @@ function () {
     try {
       for (_iterator7.s(); !(_step7 = _iterator7.n()).done;) {
         var site = _step7.value;
+
+        if (!site.wind_usable) {
+          continue;
+        } else if (result == 2) {
+          result = 3;
+        }
 
         if (isSiteForbidden(site)) {
           continue;

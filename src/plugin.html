@@ -123,7 +123,7 @@ function init() {
 	fetch(getApiUrl()).then(response => response.json()).then(launch => {
 		const sitesLatLon = {}; // latLonRounded: [latLon]
 		launchLoop: for (const site of launch.data) {
-			site.wind_usable = site.wind_usable || [site.wind_usable_from != null ? [site.wind_usable_from, site.wind_usable_to] : [0, 360]];
+			site.wind_usable = site.wind_usable_from != null ? [[site.wind_usable_from, site.wind_usable_to]] : site.wind_usable;
 			for (let lat = Math.round(site.latitude - .5); lat <= Math.round(site.latitude + .5); lat++) { // Search only in nearby squares.
 				for (let lon = Math.round(site.longitude - .5); lon <= Math.round(site.longitude + .5); lon++) {
 					if (sitesLatLon[lat + ' ' + lon]) {
@@ -258,7 +258,7 @@ function getTooltip(latLon) {
 	const tooltips = localSites.map(site => {
 		return '<b style="font-size: 1.25em;"><a' + getLaunchAttrs(site)
 			+ (isSiteForbidden(site) ? ' style="color: red;"' + (site.flying_status == 4 ? ' title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') : '') + '>' + html(site.name) + '</a></b>'
-			+ (localSites.length > 1 ? ' <img src="' + getIconUrl([site], wind, ['green', 'orange', 'red']) + '" width="12" height="12" alt="">' : '')
+			+ (localSites.length > 1 ? ' <img src="' + getIconUrl([site], wind, ['green', 'orange', 'gray', 'red']) + '" width="12" height="12" alt="">' : '')
 			+ (site.altitude ? ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' : '')
 			+ (site.superelevation ? ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)' : (site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : ''))
 			+ (site.parkings && site.parkings.length
@@ -272,7 +272,7 @@ function getTooltip(latLon) {
 	const data = forecast && !/FAKE/.test(forecast.header.note) && getForecast(forecast);
 	let extra = [];
 	if (wind) {
-		const colors = ['green', 'orange', 'red'];
+		const colors = ['green', 'orange', 'gray', 'red'];
 		// TODO: Get the high wind from airData for the other overlays.
 		const windHeight = ' ' + (store.get('level') == 'surface' || store.get('overlay') != 'wind' ? translate('on surface', 'na zemi') : translate('at', 'v') + ' ' + store.get('level'));
 		extra.push('<a' + getWindAttrs(latLon) + '>'
@@ -366,10 +366,10 @@ function getForecast(forecast) {
  * @param {Array<string>} colors
  * @return {string}
  */
-function getIconUrl(sites, wind, colors = ['lime', 'yellow', 'red']) {
+function getIconUrl(sites, wind, colors = ['lime', 'yellow', 'silver', 'red']) {
 	let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38">\n';
 	for (const site of sites) {
-		for (const [from, to] of site.wind_usable) {
+		for (const [from, to] of (site.wind_usable || [[0, 360]])) {
 			const color = getColor([site], wind, colors);
 			svg += (to - from >= 359
 				? '<circle cx="19" cy="19" r="18" fill="' + color + '"/>'
@@ -387,7 +387,7 @@ function getIconUrl(sites, wind, colors = ['lime', 'yellow', 'red']) {
  * @param {Array<string>} colors
  * @return {string}
  */
-function getColor(sites, wind, colors = ['lime', 'yellow', 'red']) {
+function getColor(sites, wind, colors = ['lime', 'yellow', 'silver', 'red']) {
 	if (sites.every(isSiteForbidden)) {
 		return colors[2];
 	}
@@ -407,11 +407,11 @@ function isSiteForbidden(site) {
 
 /** Gets color index for wind speed.
  * @param {number} speed
- * @return {int} 0 good, 1 stronger, 2 too strong
+ * @return {int} 0 good, 1 stronger, 3 too strong
  */
 function getSpeedIndex(speed) {
 	if (speed.toFixed(1) >= 8) { // Round here to not have 7.99 displayed as 8 shown in yellow.
-		return 2;
+		return 3;
 	} else if (speed.toFixed(1) >= 4) {
 		return 1;
 	}
@@ -421,11 +421,16 @@ function getSpeedIndex(speed) {
 /** Gets color index for wind direction.
  * @param {Array<Site>} sites
  * @param {number} dir
- * @return {int} 0 good, 1 almost, 2 bad
+ * @return {int} 0 good, 1 almost, 2 unknown, 3 bad
  */
 function getDirIndex(sites, dir) {
 	let result = 2;
 	for (const site of sites) {
+		if (!site.wind_usable) {
+			continue;
+		} else if (result == 2) {
+			result = 3;
+		}
 		if (isSiteForbidden(site)) {
 			continue;
 		}
