@@ -268,7 +268,7 @@ function getTooltip(latLon) {
 	const forecast = forecasts[model] && forecasts[model][latLon];
 	const airData = airDatas[model] && airDatas[model][latLon];
 	const tooltips = localSites.map(site => {
-		return '<b style="font-size: 1.25em;"><a' + getLaunchAttrs(site)
+		return '<b style="font-size: 1.25em; text-overflow: ellipsis; max-width: 180px; display: inline-block; overflow: hidden; vertical-align: text-bottom;"><a' + getLaunchAttrs(site)
 			+ (isSiteForbidden(site) ? ' style="color: red;"' + (site.flying_status == 4 ? ' title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') : '') + '>' + html(site.name) + '</a></b>'
 			+ (localSites.length > 1 ? ' <img src="' + getIconUrl([site], wind, ['green', 'orange', 'gray', 'red']) + '" width="12" height="12" alt="">' : '')
 			+ [site.url].concat(site.urls || []).map(getUrlLink).join('')
