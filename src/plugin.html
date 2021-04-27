@@ -518,8 +518,8 @@ function getCircleSlice(startAngle, endAngle, size, color) {
  * @return {{lat: number, lon: number}}
  */
 function getLatLon(latLon) {
-	const parts = latLon.split(' ');
-	return {lat: +parts[0], lon: +parts[1]};
+	const parts = /(.+) (.+)/.exec(latLon);
+	return {lat: +parts[1], lon: +parts[2]};
 }
 
 /** Gets key used for winds cache.

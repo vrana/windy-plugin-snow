@@ -567,10 +567,10 @@ function () {
   }
 
   function getLatLon(latLon) {
-    var parts = latLon.split(' ');
+    var parts = /(.+) (.+)/.exec(latLon);
     return {
-      lat: +parts[0],
-      lon: +parts[1]
+      lat: +parts[1],
+      lon: +parts[2]
     };
   }
 
