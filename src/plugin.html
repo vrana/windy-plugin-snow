@@ -63,6 +63,7 @@ this.onopen = function () {
  *   longitude: number,
  *   name: string,
  *   url: string,
+ *   urls: ?Array<string>,
  *   altitude: number,
  *   superelevation: number,
  *   flights: number,
@@ -245,6 +246,17 @@ function updateMarker(latLon) {
 	markers[latLon].setPopupContent(getTooltip(latLon));
 }
 
+function getUrlLink(url) {
+	if (/paragliding-mapa\.cz/.test(url)) {
+		return ' <a href="' + url + '" target="_blank"><img src="https://www.paragliding-mapa.cz/favicon/favicon-32x32.png" width="12" height="12" alt="" title="Paragliding Mapa"></a>';
+	} else if (/dhv\.de/.test(url)) {
+		return ' <a href="' + url + '" target="_blank"><img src="https://www.dhv.de/fileadmin/templates/dhv2011/img/favicon/dhv.ico" width="12" height="12" alt="" title="DHV"></a>';
+	} else if (/paraglidingearth\.com/.test(url)) {
+		return ' <a href="' + url + '" target="_blank"><img src="https://framagit.org/uploads/-/system/project/avatar/15927/pge.png?width=40" width="20" height="12" alt="" title="Paragliding Earth"></a>';
+	}
+	return '';
+}
+
 /** Gets tooltip with site names, wind info and forecast.
  * @param {string} latLon
  * @return {HTMLElement}
@@ -259,6 +271,7 @@ function getTooltip(latLon) {
 		return '<b style="font-size: 1.25em;"><a' + getLaunchAttrs(site)
 			+ (isSiteForbidden(site) ? ' style="color: red;"' + (site.flying_status == 4 ? ' title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') : '') + '>' + html(site.name) + '</a></b>'
 			+ (localSites.length > 1 ? ' <img src="' + getIconUrl([site], wind, ['green', 'orange', 'gray', 'red']) + '" width="12" height="12" alt="">' : '')
+			+ [site.url].concat(site.urls || []).map(getUrlLink).join('')
 			+ (site.altitude ? ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' : '')
 			+ (site.superelevation ? ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)' : (site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : ''))
 			+ (site.parkings && site.parkings.length
