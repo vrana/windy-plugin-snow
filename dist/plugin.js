@@ -263,8 +263,9 @@ function () {
 
   function updateMarker(latLon) {
     var wind = getWind(latLon);
+    var color = getColor(sites[latLon], wind);
     markers[latLon].setIcon(newIcon(getIconUrl(sites[latLon], wind), map.getZoom(), sites[latLon]));
-    markers[latLon].setOpacity(getColor(sites[latLon], wind) != 'red' ? 1 : .6);
+    markers[latLon].setOpacity(color != 'red' && color != 'silver' ? 1 : .6);
     markers[latLon].setPopupContent(getTooltip(latLon));
   }
 
