@@ -441,7 +441,7 @@ function () {
     var colors = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : ['lime', 'yellow', 'silver', 'red'];
 
     if (sites.every(isSiteForbidden)) {
-      return colors[2];
+      return colors[3];
     }
 
     if (!wind) {

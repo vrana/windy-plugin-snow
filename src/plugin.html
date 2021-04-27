@@ -390,7 +390,7 @@ function getIconUrl(sites, wind, colors = ['lime', 'yellow', 'silver', 'red']) {
  */
 function getColor(sites, wind, colors = ['lime', 'yellow', 'silver', 'red']) {
 	if (sites.every(isSiteForbidden)) {
-		return colors[2];
+		return colors[3];
 	}
 	if (!wind) {
 		return 'white';
