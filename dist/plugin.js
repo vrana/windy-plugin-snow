@@ -207,7 +207,9 @@ function () {
   function redraw() {
     interpolator(function (interpolate) {
       for (var latLon in markers) {
-        if (map.getZoom() < 8 || !map.getBounds().contains(getLatLon(latLon))) {
+        if (map.getZoom() < 5 || map.getZoom() < 8 && !sites[latLon].some(function (site) {
+          return site.flights > 100;
+        }) || !map.getBounds().contains(getLatLon(latLon))) {
           markers[latLon].remove();
         } else {
           if (!winds[getWindsKey(latLon)]) {
