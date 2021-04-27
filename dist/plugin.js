@@ -206,9 +206,11 @@ function () {
       var mapBounds = map.getBounds();
 
       for (var latLon in sites) {
-        if (map.getZoom() > 4 && (map.getZoom() > 7 || sites[latLon].some(function (site) {
-          return site.flights > 100;
-        })) && mapBounds.contains(getLatLon(latLon))) {
+        var flights = sites[latLon].reduce(function (acc, site) {
+          return Math.max(acc, site.flights);
+        }, 0);
+
+        if (map.getZoom() > (flights > 100 ? 4 : flights > 10 ? 7 : 8) && mapBounds.contains(getLatLon(latLon))) {
           if (!markers[latLon]) {
             markers[latLon] = createMarker(latLon);
           }

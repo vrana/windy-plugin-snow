@@ -183,7 +183,8 @@ function redraw() {
 	interpolator(interpolate => {
 		const mapBounds = map.getBounds();
 		for (const latLon in sites) {
-			if (map.getZoom() > 4 && (map.getZoom() > 7 || sites[latLon].some(site => site.flights > 100)) && mapBounds.contains(getLatLon(latLon))) {
+			const flights = sites[latLon].reduce((acc, site) => Math.max(acc, site.flights), 0);
+			if (map.getZoom() > (flights > 100 ? 4 : (flights > 10 ? 7 : 8)) && mapBounds.contains(getLatLon(latLon))) {
 				if (!markers[latLon]) {
 					markers[latLon] = createMarker(latLon);
 				}
