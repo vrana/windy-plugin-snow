@@ -161,7 +161,7 @@ function () {
       }
 
       var _loop = function _loop(latLon) {
-        var icon = newIcon(getIconUrl(sites[latLon], null), map.getZoom(), sites[latLon]);
+        var icon = newIcon(getIconUrl(sites[latLon], null), sites[latLon]);
         var marker = L.marker(getLatLon(latLon), {
           icon: icon,
           riseOnHover: true,
@@ -218,7 +218,7 @@ function () {
               winds[getWindsKey(latLon)] = data && utils.wind2obj(data);
             } else if (!loadForecast(latLon)) {
               var url = markers[latLon]._icon.src;
-              markers[latLon].setIcon(newIcon(url, map.getZoom(), sites[latLon]));
+              markers[latLon].setIcon(newIcon(url, sites[latLon]));
               continue;
             }
           }
@@ -266,7 +266,7 @@ function () {
   function updateMarker(latLon) {
     var wind = getWind(latLon);
     var color = getColor(sites[latLon], wind);
-    markers[latLon].setIcon(newIcon(getIconUrl(sites[latLon], wind), map.getZoom(), sites[latLon]));
+    markers[latLon].setIcon(newIcon(getIconUrl(sites[latLon], wind), sites[latLon]));
     markers[latLon].setOpacity(color != 'red' && color != 'silver' ? 1 : .6);
     markers[latLon].setPopupContent(getTooltip(latLon));
   }
@@ -536,10 +536,11 @@ function () {
     return dir >= from - tolerance && dir <= to + tolerance || dir <= to + tolerance - 360 || dir >= from - tolerance + 360;
   }
 
-  function newIcon(url, zoom, site) {
+  function newIcon(url, site) {
     var _site$0$flights;
 
-    var size = zoom > 9 ? 38 : zoom > 6 ? 19 : zoom > 4 ? 9 : 5;
+    var zoom = map.getZoom();
+    var size = zoom > 9 ? 38 : zoom > 6 ? 19 : zoom > 5 ? 9 : 5;
     var amount = (_site$0$flights = site[0].flights) !== null && _site$0$flights !== void 0 ? _site$0$flights : site[0].superelevation || 0;
 
     if (amount < 10) {
