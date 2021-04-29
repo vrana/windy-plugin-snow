@@ -22,7 +22,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -176,7 +176,7 @@ function () {
       icon: newIcon(getIconUrl(sites[latLon], null), sites[latLon]),
       riseOnHover: true,
       title: sites[latLon].map(function (site) {
-        return site.name + (site.superelevation ? ' (' + site.superelevation + ' m)' : site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : '');
+        return site.name + (site.superelevation ? ' (' + site.superelevation + ' m)' : '');
       }).join('\n')
     });
     marker.bindPopup(getTooltip(latLon), {
@@ -295,7 +295,7 @@ function () {
     var forecast = forecasts[model] && forecasts[model][latLon];
     var airData = airDatas[model] && airDatas[model][latLon];
     var tooltips = localSites.map(function (site) {
-      return '<b style="font-size: 1.25em;' + (site.name.length >= 20 ? 'text-overflow: ellipsis; max-width: 180px; display: inline-block; overflow: hidden; vertical-align: text-bottom;" title="' + html(site.name) : '') + '"><a' + getLaunchAttrs(site) + (isSiteForbidden(site) ? ' style="color: red;"' + (site.flying_status == 4 ? ' title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') : '') + '>' + html(site.name) + '</a></b>' + (localSites.length > 1 ? ' <img src="' + getIconUrl([site], wind, ['green', 'orange', 'gray', 'red']) + '" width="12" height="12" alt="">' : '') + [site.url].concat(site.urls || []).map(getUrlLink).join('') + (site.altitude ? ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' : '') + (site.superelevation ? ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)' : site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : '') + (site.parkings && site.parkings.length ? site.parkings.map(function (parking) {
+      return '<b style="font-size: 1.25em;' + (site.name.length >= 20 ? 'text-overflow: ellipsis; max-width: 180px; display: inline-block; overflow: hidden; vertical-align: text-bottom;" title="' + html(site.name) : '') + '"><a' + getLaunchAttrs(site) + (isSiteForbidden(site) ? ' style="color: red;"' + (site.flying_status == 4 ? ' title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') : '') + '>' + html(site.name) + '</a></b>' + (localSites.length > 1 ? ' <img src="' + getIconUrl([site], wind, ['green', 'orange', 'gray', 'red']) + '" width="12" height="12" alt="">' : '') + [site.url].concat(site.urls || []).map(getUrlLink).join('') + (site.altitude ? ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' : '') + (site.superelevation ? ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)' : '') + (site.parkings && site.parkings.length ? site.parkings.map(function (parking) {
         return ' <a href="https://www.google.com/maps/dir/?api=1&destination=' + parking.latitude + ',' + parking.longitude + '" target="_blank"><img src="https://www.google.com/images/branding/product/ico/maps15_bnuw3a_32dp.ico" width="12" height="12" alt="" title="' + translate('parking', 'parkoviště') + html(parking.name == site.name && site.parkings.length == 1 ? '' : ' ' + parking.name) + '" style="vertical-align: middle;"></a>';
       }).join('') : ' <a href="https://www.google.com/maps/dir/?api=1&destination=' + site.latitude + ',' + site.longitude + '" target="_blank"><img src="https://www.google.com/images/branding/product/ico/maps15_bnuw3a_32dp.ico" width="12" height="12" alt="" title="' + translate('takeoff', 'startovačka') + '" style="vertical-align: middle;"></a>') + ' <a href="https://mapy.cz/turisticka?source=coor&id=' + site.longitude + ',' + site.latitude + '" target="_blank"><img src="https://mapy.cz/img/favicon/favicon.ico" width="12" height="12" alt="" title="' + translate('takeoff', 'startovačka') + '" style="vertical-align: middle;"></a>' + getLaunchExtra(site);
     });
@@ -327,7 +327,7 @@ function () {
 
     addLinks(localSites[0].link_meteo, translate('weather station', 'meteostanice'), '');
     addLinks(localSites[0].link_webcam, translate('webcam', 'webkamera'), 'l');
-    extra.push('<a href="https://www.xcontest.org/world/en/flights-search/?list[sort]=pts&filter[point]=' + latLon.replace(/(.+) (.+)/, '$2+$1') + '&filter[radius]=1100&filter[date_mode]=period&filter[date]=2019-10-01&filter[date_to]=2020-09-30#filter-mode"' + (localSites[0].flights != null ? ' title="' + localSites[0].flights + ' ' + translate('flights', 'letů') + '"' : '') + ' target="_blank"><img src="https://s.xcontest.org/img/xcontest.gif" width="25" height="12" alt="XContest" style="vertical-align: middle;"></a>');
+    extra.push('<a href="https://www.xcontest.org/world/en/flights-search/?list[sort]=pts&filter[point]=' + latLon.replace(/(.+) (.+)/, '$2+$1') + '&filter[radius]=2000&filter[date_mode]=period#filter-mode"' + (localSites[0].flights != null ? ' title="' + localSites[0].flights + ' ' + translate('flights per year', 'letů za rok') + '"' : '') + ' target="_blank"><img src="https://s.xcontest.org/img/xcontest.gif" width="25" height="12" alt="XContest" style="vertical-align: middle;"></a>');
     var s = localSites[0].name;
 
     if (localSites.length > 1) {

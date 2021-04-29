@@ -158,7 +158,7 @@ function createMarker(latLon) {
 	const marker = L.marker(getLatLon(latLon), {
 		icon: newIcon(getIconUrl(sites[latLon], null), sites[latLon]),
 		riseOnHover: true,
-		title: sites[latLon].map(site => site.name + (site.superelevation ? ' (' + site.superelevation + ' m)' : (site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : ''))).join('\n'),
+		title: sites[latLon].map(site => site.name + (site.superelevation ? ' (' + site.superelevation + ' m)' : '')).join('\n'),
 	});
 	// Leaflet supports binding function but that function is called only the first time the popup is opened.
 	marker.bindPopup(getTooltip(latLon), {minWidth: 200, maxWidth: 400});
@@ -280,7 +280,7 @@ function getTooltip(latLon) {
 			+ (localSites.length > 1 ? ' <img src="' + getIconUrl([site], wind, ['green', 'orange', 'gray', 'red']) + '" width="12" height="12" alt="">' : '')
 			+ [site.url].concat(site.urls || []).map(getUrlLink).join('')
 			+ (site.altitude ? ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' : '')
-			+ (site.superelevation ? ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)' : (site.flights ? ' (' + site.flights + ' ' + translate('flights', 'letů') + ')' : ''))
+			+ (site.superelevation ? ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)' : '')
 			+ (site.parkings && site.parkings.length
 				? site.parkings.map(parking => ' <a href="https://www.google.com/maps/dir/?api=1&destination=' + parking.latitude + ',' + parking.longitude + '" target="_blank"><img src="https://www.google.com/images/branding/product/ico/maps15_bnuw3a_32dp.ico" width="12" height="12" alt="" title="' + translate('parking', 'parkoviště') + html(parking.name == site.name && site.parkings.length == 1 ? '' : ' ' + parking.name) + '" style="vertical-align: middle;"></a>').join('')
 				: ' <a href="https://www.google.com/maps/dir/?api=1&destination=' + site.latitude + ',' + site.longitude + '" target="_blank"><img src="https://www.google.com/images/branding/product/ico/maps15_bnuw3a_32dp.ico" width="12" height="12" alt="" title="' + translate('takeoff', 'startovačka') + '" style="vertical-align: middle;"></a>'
@@ -320,7 +320,7 @@ function getTooltip(latLon) {
 	}
 	addLinks(localSites[0].link_meteo, translate('weather station', 'meteostanice'), '');
 	addLinks(localSites[0].link_webcam, translate('webcam', 'webkamera'), 'l');
-	extra.push('<a href="https://www.xcontest.org/world/en/flights-search/?list[sort]=pts&filter[point]=' + latLon.replace(/(.+) (.+)/, '$2+$1') + '&filter[radius]=1100&filter[date_mode]=period&filter[date]=2019-10-01&filter[date_to]=2020-09-30#filter-mode"' + (localSites[0].flights != null ? ' title="' + localSites[0].flights + ' ' + translate('flights', 'letů') + '"' : '') + ' target="_blank"><img src="https://s.xcontest.org/img/xcontest.gif" width="25" height="12" alt="XContest" style="vertical-align: middle;"></a>');
+	extra.push('<a href="https://www.xcontest.org/world/en/flights-search/?list[sort]=pts&filter[point]=' + latLon.replace(/(.+) (.+)/, '$2+$1') + '&filter[radius]=2000&filter[date_mode]=period#filter-mode"' + (localSites[0].flights != null ? ' title="' + localSites[0].flights + ' ' + translate('flights per year', 'letů za rok') + '"' : '') + ' target="_blank"><img src="https://s.xcontest.org/img/xcontest.gif" width="25" height="12" alt="XContest" style="vertical-align: middle;"></a>');
 	let s = localSites[0].name;
 	if (localSites.length > 1) {
 		const words = {};
