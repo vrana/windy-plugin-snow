@@ -22,7 +22,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -327,7 +327,13 @@ function () {
 
     addLinks(localSites[0].link_meteo, translate('weather station', 'meteostanice'), '');
     addLinks(localSites[0].link_webcam, translate('webcam', 'webkamera'), 'l');
-    extra.push('<a href="https://www.xcontest.org/world/en/flights-search/?list[sort]=pts&filter[point]=' + latLon.replace(/(.+) (.+)/, '$2+$1') + '&filter[radius]=2000&filter[date_mode]=period#filter-mode"' + (localSites[0].flights != null ? ' title="' + localSites[0].flights + ' ' + translate('flights per year', 'letů za rok') + '"' : '') + ' target="_blank"><img src="https://s.xcontest.org/img/xcontest.gif" width="25" height="12" alt="XContest" style="vertical-align: middle;"></a>');
+    var xcontestLink;
+    localSites.some(function (site) {
+      return xcontestLink = [site.url].concat(site.urls || []).find(function (url) {
+        return /xcontest\.org/.test(url);
+      });
+    });
+    extra.push('<a href="' + (xcontestLink || 'https://www.xcontest.org/world/en/flights-search/?list[sort]=pts&filter[point]=' + latLon.replace(/(.+) (.+)/, '$2+$1') + '&filter[radius]=2000&filter[date_mode]=period#filter-mode') + '"' + (localSites[0].flights != null ? ' title="' + localSites[0].flights + ' ' + translate('flights per year', 'letů za rok') + '"' : '') + ' target="_blank"><img src="https://s.xcontest.org/img/xcontest.gif" width="25" height="12" alt="XContest" style="vertical-align: middle;"></a>');
     var s = localSites[0].name;
 
     if (localSites.length > 1) {
