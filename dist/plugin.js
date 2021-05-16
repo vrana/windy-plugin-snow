@@ -22,7 +22,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "2.1.2",
+  "version": "2.1.3",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -219,7 +219,7 @@ function () {
             if (store.get('overlay') == 'wind') {
               var data = interpolate(getLatLon(latLon));
               winds[getWindsKey(latLon)] = data && utils.wind2obj(data);
-            } else if (!loadForecast(latLon)) {
+            } else if (!loadForecast(latLon) && markers[latLon]._icon) {
               var url = markers[latLon]._icon.src;
               markers[latLon].setIcon(newIcon(url, sites[latLon]));
               continue;
