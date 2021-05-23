@@ -425,7 +425,14 @@ function () {
 
   function getIconUrl(sites, wind) {
     var colors = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : ['lime', 'yellow', 'silver', 'red'];
-    var svg = '';
+    var svg = [];
+    var sortOrder = {
+      0: 5,
+      1: 4,
+      2: 1,
+      3: 3,
+      '-1': 2
+    };
 
     var _iterator5 = _createForOfIteratorHelper(sites),
         _step5;
@@ -445,7 +452,7 @@ function () {
 
             var color = getColor([site], wind, colors);
             var circle = (to - from >= 359 ? '<circle cx="19" cy="19" r="18" fill="' + color + '"/>' : getCircleSlice(from - 90, to - 90, 38, color)) + '\n';
-            svg = color == colors[2] ? circle + svg : svg + circle;
+            svg.push([sortOrder[colors.indexOf(color)], circle]);
           }
         } catch (err) {
           _iterator6.e(err);
@@ -459,15 +466,17 @@ function () {
       _iterator5.f();
     }
 
-    svg = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38">\n' + svg + '<circle cx="19" cy="19" r="18" stroke="#333" stroke-width="2" fill-opacity="0"/>\n</svg>';
-    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    svg.sort();
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38">\n' + svg.map(function (x) {
+      return x[1];
+    }).join('') + '<circle cx="19" cy="19" r="18" stroke="#333" stroke-width="2" fill-opacity="0"/>\n</svg>');
   }
 
   function getColor(sites, wind) {
     var colors = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : ['lime', 'yellow', 'silver', 'red'];
 
     if (sites.every(isSiteForbidden)) {
-      return colors[3];
+      return colors[2];
     }
 
     if (!wind) {
