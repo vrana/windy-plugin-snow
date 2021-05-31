@@ -37,22 +37,19 @@ W.loadPlugin(
 '',
 /* Constructor */
 function () {
+  var windyHttp = W.require('http');
+
+  var windyUrls = W.require('urls');
+
   var utils = W.require('utils');
 
   var store = W.require('store');
-
-  var pluginDataLoader = W.require('@plugins/plugin-data-loader');
 
   var map = W.require('map');
 
   var interpolator = W.require('interpolator');
 
   var broadcast = W.require('broadcast');
-
-  var loadData = pluginDataLoader({
-    key: 'vVGMVsbSz6cWtZsxMPQURL88LKFYpojx',
-    plugin: 'windy-plugin-pg-mapa'
-  });
 
   function onLaunchLoad() {}
 
@@ -98,6 +95,7 @@ function () {
   var Wind;
   var winds = {};
   var Forecast;
+  var ForecastArray;
   var forecasts = {};
   var AirData;
   var airDatas = {};
@@ -190,9 +188,9 @@ function () {
       airDatas[model] = airDatas[model] || {};
 
       if (!airDatas[model][latLon]) {
-        loadData('airData', Object.assign({
-          model: model
-        }, getLatLon(latLon))).then(function (airData) {
+        windyHttp.get(windyUrls.getMeteogramForecast(model, Object.assign({
+          step: 1
+        }, getLatLon(latLon)))).then(function (airData) {
           airDatas[model][latLon] = airData.data;
           markers[latLon].setPopupContent(getTooltip(latLon));
         });
@@ -247,9 +245,9 @@ function () {
       return true;
     }
 
-    loadData('forecast', Object.assign({
-      model: model
-    }, getLatLon(latLon))).then(function (forecast) {
+    windyHttp.get(windyUrls.getPointForecast(model, Object.assign({
+      step: 1
+    }, getLatLon(latLon)), 'detail')).then(function (forecast) {
       forecasts[model][latLon] = forecast.data;
       updateMarker(latLon);
     });
@@ -397,30 +395,21 @@ function () {
   }
 
   function getForecast(forecast) {
-    var path = store.get('path').replace(/(\d{4})\/?(\d{2})\/?(\d{2})\/?(\d{2})/, '$1-$2-$3-$4');
-    var day = forecast.data[path.replace(/-\d+$/, '')] || [];
-    var last = null;
+    var i = 0;
 
-    var _iterator4 = _createForOfIteratorHelper(day),
-        _step4;
-
-    try {
-      for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
-        var data = _step4.value;
-
-        if (data.hour > path.replace(/.*-0?/, '')) {
-          break;
-        }
-
-        last = data;
+    for (; i < forecast.data.day.length; i++) {
+      if (forecast.data.ts[i] > store.get('timestamp')) {
+        break;
       }
-    } catch (err) {
-      _iterator4.e(err);
-    } finally {
-      _iterator4.f();
     }
 
-    return last;
+    var result = {};
+
+    for (var key in forecast.data) {
+      result[key] = forecast.data[key][i - 1];
+    }
+
+    return i ? result : null;
   }
 
   function getIconUrl(sites, wind) {
@@ -434,36 +423,36 @@ function () {
       '-1': 2
     };
 
-    var _iterator5 = _createForOfIteratorHelper(sites),
-        _step5;
+    var _iterator4 = _createForOfIteratorHelper(sites),
+        _step4;
 
     try {
-      for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
-        var site = _step5.value;
+      for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
+        var site = _step4.value;
 
-        var _iterator6 = _createForOfIteratorHelper(site.wind_usable || [[0, 360]]),
-            _step6;
+        var _iterator5 = _createForOfIteratorHelper(site.wind_usable || [[0, 360]]),
+            _step5;
 
         try {
-          for (_iterator6.s(); !(_step6 = _iterator6.n()).done;) {
-            var _step6$value = _slicedToArray(_step6.value, 2),
-                from = _step6$value[0],
-                to = _step6$value[1];
+          for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
+            var _step5$value = _slicedToArray(_step5.value, 2),
+                from = _step5$value[0],
+                to = _step5$value[1];
 
             var color = getColor([site], wind, colors);
             var circle = (to - from >= 359 ? '<circle cx="19" cy="19" r="18" fill="' + color + '"/>' : getCircleSlice(from - 90, to - 90, 38, color)) + '\n';
             svg.push([sortOrder[colors.indexOf(color)], circle]);
           }
         } catch (err) {
-          _iterator6.e(err);
+          _iterator5.e(err);
         } finally {
-          _iterator6.f();
+          _iterator5.f();
         }
       }
     } catch (err) {
-      _iterator5.e(err);
+      _iterator4.e(err);
     } finally {
-      _iterator5.f();
+      _iterator4.f();
     }
 
     svg.sort();
@@ -503,12 +492,12 @@ function () {
   function getDirIndex(sites, dir) {
     var result = 2;
 
-    var _iterator7 = _createForOfIteratorHelper(sites),
-        _step7;
+    var _iterator6 = _createForOfIteratorHelper(sites),
+        _step6;
 
     try {
-      for (_iterator7.s(); !(_step7 = _iterator7.n()).done;) {
-        var site = _step7.value;
+      for (_iterator6.s(); !(_step6 = _iterator6.n()).done;) {
+        var site = _step6.value;
 
         if (!site.wind_usable) {
           continue;
@@ -520,14 +509,14 @@ function () {
           continue;
         }
 
-        var _iterator8 = _createForOfIteratorHelper(site.wind_usable),
-            _step8;
+        var _iterator7 = _createForOfIteratorHelper(site.wind_usable),
+            _step7;
 
         try {
-          for (_iterator8.s(); !(_step8 = _iterator8.n()).done;) {
-            var _step8$value = _slicedToArray(_step8.value, 2),
-                from = _step8$value[0],
-                to = _step8$value[1];
+          for (_iterator7.s(); !(_step7 = _iterator7.n()).done;) {
+            var _step7$value = _slicedToArray(_step7.value, 2),
+                from = _step7$value[0],
+                to = _step7$value[1];
 
             if (isDirIn(dir, from, to)) {
               return 0;
@@ -536,15 +525,15 @@ function () {
             }
           }
         } catch (err) {
-          _iterator8.e(err);
+          _iterator7.e(err);
         } finally {
-          _iterator8.f();
+          _iterator7.f();
         }
       }
     } catch (err) {
-      _iterator7.e(err);
+      _iterator6.e(err);
     } finally {
-      _iterator7.f();
+      _iterator6.f();
     }
 
     return result;
@@ -672,14 +661,14 @@ function () {
     var prev;
     var segments = [];
 
-    var _iterator9 = _createForOfIteratorHelper(layers.wind_u.map(function (u, i) {
+    var _iterator8 = _createForOfIteratorHelper(layers.wind_u.map(function (u, i) {
       return [(180 * Math.atan2(-layers.wind_v[i][0], u[0]) / Math.PI - 90 + 360) % 360, u[1]];
     })),
-        _step9;
+        _step8;
 
     try {
-      for (_iterator9.s(); !(_step9 = _iterator9.n()).done;) {
-        var dir = _step9.value;
+      for (_iterator8.s(); !(_step8 = _iterator8.n()).done;) {
+        var dir = _step8.value;
 
         if (prev) {
           if (Math.abs(prev[0] - dir[0]) <= 180) {
@@ -693,9 +682,9 @@ function () {
         prev = dir;
       }
     } catch (err) {
-      _iterator9.e(err);
+      _iterator8.e(err);
     } finally {
-      _iterator9.f();
+      _iterator8.f();
     }
 
     return segments;
@@ -768,12 +757,12 @@ function () {
       return [20 + Math.sqrt(Math.pow(u[0], 2) + Math.pow(layers.wind_v[i][0], 2)) * 25, u[1]];
     }), '#293', 1.5);
 
-    var _iterator10 = _createForOfIteratorHelper(splitWindDir(layers)),
-        _step10;
+    var _iterator9 = _createForOfIteratorHelper(splitWindDir(layers)),
+        _step9;
 
     try {
-      for (_iterator10.s(); !(_step10 = _iterator10.n()).done;) {
-        var segment = _step10.value;
+      for (_iterator9.s(); !(_step9 = _iterator9.n()).done;) {
+        var segment = _step9.value;
         svgLine(g, segment.map(function (a) {
           return [20 + a[0] / 360 * 400, a[1]];
         }), '#52bea8', 1.5, {
@@ -781,9 +770,9 @@ function () {
         });
       }
     } catch (err) {
-      _iterator10.e(err);
+      _iterator9.e(err);
     } finally {
-      _iterator10.f();
+      _iterator9.f();
     }
 
     svgLine(svg, [[20, 0], [420, 0]], '#555', .5, {
@@ -913,7 +902,7 @@ function () {
 
   function getCurrentHour(airData) {
     var data = airData.data;
-    var now = new Date(store.get('path').replace(/(\d{4})\/?(\d{2})\/?(\d{2})\/?(\d{2})/, '$1-$2-$3T$4:00Z')).getTime();
+    var now = store.get('timestamp');
     var hour = 0;
 
     for (var key in data.hours) {

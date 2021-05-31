@@ -3,14 +3,10 @@
 import broadcast from '@windy/broadcast';
 import interpolator from '@windy/interpolator';
 import map from '@windy/map';
-import pluginDataLoader from '@windy/plugins/plugin-data-loader';
 import store from '@windy/store';
 import utils from '@windy/utils';
-
-const loadData = pluginDataLoader({
-	key: 'vVGMVsbSz6cWtZsxMPQURL88LKFYpojx',
-	plugin: 'windy-plugin-pg-mapa',
-});
+import windyUrls from '@windy/urls';
+import windyHttp from '@windy/http';
 
 function onLaunchLoad() {
 }
@@ -97,9 +93,20 @@ const winds = {};
  *   mm: number,
  * }} */
 let Forecast;
+/** @typedef {{
+ *   day: Array<string>,
+ *   hour: Array<number>,
+ *   wind: Array<number>,
+ *   gust: Array<number>,
+ *   windDir: Array<number>,
+ *   icon2: Array<number>,
+ *   moonPhase: Array<number>,
+ *   mm: Array<number>,
+ * }} */
+let ForecastArray;
 /** @type {Object<string, Object<string, {
  *   header: {note: string, sunrise: number, sunset: number},
- *   data: Object<string, Array<Forecast>>,
+ *   data: Object<string, Array<ForecastArray>>,
  * }>>} key: model, key2: latLon, key in data: day */
 const forecasts = {};
 /** @typedef {{header: {modelElevation: number, elevation: number}, data: {
@@ -169,7 +176,7 @@ function createMarker(latLon) {
 		const model = getModel();
 		airDatas[model] = airDatas[model] || {};
 		if (!airDatas[model][latLon]) {
-			loadData('airData', Object.assign({model}, getLatLon(latLon))).then(airData => {
+			windyHttp.get(windyUrls.getMeteogramForecast(model, Object.assign({step: 1}, getLatLon(latLon)))).then(airData => {
 				// Cache: response has Expires: -1.
 				airDatas[model][latLon] = airData.data;
 				markers[latLon].setPopupContent(getTooltip(latLon));
@@ -222,7 +229,7 @@ function loadForecast(latLon) {
 	if (forecasts[model][latLon]) {
 		return true;
 	}
-	loadData('forecast', Object.assign({model}, getLatLon(latLon))).then(forecast => {
+	windyHttp.get(windyUrls.getPointForecast(model, Object.assign({step: 1}, getLatLon(latLon)), 'detail')).then(forecast => {
 		forecasts[model][latLon] = forecast.data;
 		// After loading the forecast, update the tooltip and possibly also the icon.
 		updateMarker(latLon);
@@ -364,22 +371,22 @@ function getTooltip(latLon) {
 }
 
 /** Gets forecast for current time.
- * @param {{data: Object<string, Array<Forecast>>}} forecast Loaded forecast.data.
+ * @param {{data: Object<string, Array<ForecastArray>>}} forecast Loaded forecast.data.
  * @return {?Forecast} Null if there's no forecast.
  */
 function getForecast(forecast) {
-	// The format of 'path' is YYYY/MM/DD/HH (ecmwf) or YYYYMMDDHH (iconEu).
-	const path = store.get('path').replace(/(\d{4})\/?(\d{2})\/?(\d{2})\/?(\d{2})/, '$1-$2-$3-$4');
-	const day = forecast.data[path.replace(/-\d+$/, '')] || [];
-	let last = null;
-	for (const data of day) {
+	let i = 0;
+	for (; i < forecast.data.day.length; i++) {
 		// Use last non-future forecast (e.g. 21:00 forecast for 23:00 path with 3 hours granularity).
-		if (data.hour > path.replace(/.*-0?/, '')) {
+		if (forecast.data.ts[i] > store.get('timestamp')) {
 			break;
 		}
-		last = data;
 	}
-	return last;
+	const result = {};
+	for (let key in forecast.data) {
+		result[key] = forecast.data[key][i - 1];
+	}
+	return (i ? result : null);
 }
 
 /** Gets URL with SVG image.
@@ -748,8 +755,7 @@ function computeCeiling(airData) {
 
 function getCurrentHour(airData) {
 	const {data} = airData;
-	// The format of 'path' is YYYY/MM/DD/HH (ecmwf) or YYYYMMDDHH (iconEu).
-	const now = new Date(store.get('path').replace(/(\d{4})\/?(\d{2})\/?(\d{2})\/?(\d{2})/, '$1-$2-$3T$4:00Z')).getTime();
+	const now = store.get('timestamp');
 	let hour = 0;
 	for (const key in data.hours) {
 		if (data.hours[key] > now) {
