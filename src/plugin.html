@@ -216,7 +216,7 @@ function createMarker(latLon) {
 		title: sites[latLon].map(site => site.name + (site.superelevation ? ' (' + site.superelevation + ' m)' : '')).join('\n'),
 	});
 	// Leaflet supports binding function but that function is called only the first time the popup is opened.
-	marker.bindPopup(getTooltip(latLon), {minWidth: 200, maxWidth: 400});
+	marker.bindPopup(getTooltip(latLon), {minWidth: 200, maxWidth: 400, autoPan: false});
 	// Leaflet tooltips close when you hover the tooltip and they work poorly on mobile. Use popup instead.
 	marker.on('popupopen', () => {
 		activeMarker = marker;

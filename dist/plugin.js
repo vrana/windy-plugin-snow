@@ -239,7 +239,8 @@ function () {
     });
     marker.bindPopup(getTooltip(latLon), {
       minWidth: 200,
-      maxWidth: 400
+      maxWidth: 400,
+      autoPan: false
     });
     marker.on('popupopen', function () {
       activeMarker = marker;
