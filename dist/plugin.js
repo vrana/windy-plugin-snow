@@ -4,13 +4,13 @@ function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArra
 
 function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 
-function _iterableToArrayLimit(arr, i) { if (typeof Symbol === "undefined" || !(Symbol.iterator in Object(arr))) return; var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"] != null) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
+function _iterableToArrayLimit(arr, i) { var _i = arr == null ? null : typeof Symbol !== "undefined" && arr[Symbol.iterator] || arr["@@iterator"]; if (_i == null) return; var _arr = []; var _n = true; var _d = false; var _s, _e; try { for (_i = _i.call(arr); !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"] != null) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
 
 function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
 
-function _createForOfIteratorHelper(o) { if (typeof Symbol === "undefined" || o[Symbol.iterator] == null) { if (Array.isArray(o) || (o = _unsupportedIterableToArray(o))) { var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e2) { throw _e2; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var it, normalCompletion = true, didErr = false, err; return { s: function s() { it = o[Symbol.iterator](); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e3) { didErr = true; err = _e3; }, f: function f() { try { if (!normalCompletion && it["return"] != null) it["return"](); } finally { if (didErr) throw err; } } }; }
+function _createForOfIteratorHelper(o, allowArrayLike) { var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"]; if (!it) { if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") { if (it) o = it; var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e2) { throw _e2; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var normalCompletion = true, didErr = false, err; return { s: function s() { it = it.call(o); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e3) { didErr = true; err = _e3; }, f: function f() { try { if (!normalCompletion && it["return"] != null) it["return"](); } finally { if (didErr) throw err; } } }; }
 
-function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(n); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
+function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
 
 function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
 
@@ -22,7 +22,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "2.1.5",
+  "version": "2.1.6",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -98,7 +98,9 @@ function () {
   var ForecastArray;
   var forecasts = {};
   var AirData;
-  var airDatas = {};
+  var airDatas = {
+    ecmwf: {}
+  };
   var displaySounding = false;
 
   function init() {
@@ -169,6 +171,64 @@ function () {
     });
   }
 
+  function findTempDiffAtSurface(airData) {
+    var header = airData.header,
+        data = airData.data;
+    var hour = getCurrentHour(airData);
+    var above;
+    var below;
+
+    for (var key in data) {
+      var match = /^gh-(\d.+)/.exec(key);
+
+      if (match) {
+        var value = data[key][hour];
+
+        if (value > header.modelElevation) {
+          if (!above || value < data['gh-' + above][hour]) {
+            above = match[1];
+          }
+        } else if (!below || value > data['gh-' + below][hour]) {
+          below = match[1];
+        }
+      }
+    }
+
+    var ghAbove = data['gh-' + above][hour];
+    var tempAbove = data['temp-' + above][hour];
+    var ratio = (ghAbove - header.modelElevation) / (ghAbove - data['gh-' + below][hour]);
+    return tempAbove + (data['temp-' + below][hour] - tempAbove) * ratio - data['temp-surface'][hour];
+  }
+
+  function setModelElevation(airData, tempDiff) {
+    var header = airData.header,
+        data = airData.data;
+    var hour = getCurrentHour(airData);
+    var tempSurface = data['temp-surface'][hour] + tempDiff;
+    var above;
+    var below;
+
+    for (var key in data) {
+      var match = /^temp-(\d.+)/.exec(key);
+
+      if (match) {
+        var value = data[key][hour];
+
+        if (value < tempSurface) {
+          if (!above || value > data['temp-' + above][hour]) {
+            above = match[1];
+          }
+        } else if (!below || value < data['temp-' + below][hour]) {
+          below = match[1];
+        }
+      }
+    }
+
+    var ghBelow = data['gh-' + below][hour];
+    var tempBelow = data['temp-' + below][hour];
+    header.modelElevation = ghBelow + (data['gh-' + above][hour] - ghBelow) * (tempBelow - tempSurface) / (tempBelow - data['temp-' + above][hour]);
+  }
+
   function createMarker(latLon) {
     var marker = L.marker(getLatLon(latLon), {
       icon: newIcon(getIconUrl(sites[latLon], null), sites[latLon]),
@@ -191,8 +251,28 @@ function () {
         windyHttp.get(windyUrls.getMeteogramForecast(model, Object.assign({
           step: 1
         }, getLatLon(latLon)))).then(function (airData) {
-          airDatas[model][latLon] = airData.data;
-          markers[latLon].setPopupContent(getTooltip(latLon));
+          function loaded() {
+            airDatas[model][latLon] = airData.data;
+            markers[latLon].setPopupContent(getTooltip(latLon));
+          }
+
+          function loaded2() {
+            setModelElevation(airData.data, findTempDiffAtSurface(airDatas['ecmwf'][latLon]));
+            loaded();
+          }
+
+          if (airData.data.header.modelElevation) {
+            loaded();
+          } else if (airDatas['ecmwf'][latLon]) {
+            loaded2();
+          } else {
+            windyHttp.get(windyUrls.getMeteogramForecast('ecmwf', Object.assign({
+              step: 1
+            }, getLatLon(latLon)))).then(function (ecmwf) {
+              airDatas['ecmwf'][latLon] = ecmwf.data;
+              loaded2();
+            });
+          }
         });
       }
     });
@@ -628,7 +708,7 @@ function () {
     };
     var below = {
       key: 'surface',
-      value: header.modelElevation || header.elevation
+      value: header.modelElevation
     };
 
     for (var key in data) {
@@ -712,7 +792,7 @@ function () {
     };
     var maxTemp = -Infinity;
     var zeroK = -273.15;
-    var ground = header.modelElevation || header.elevation;
+    var ground = header.modelElevation;
     var ceiling = 4000 + Math.floor(ground / 500) * 500;
 
     for (var key in data) {
@@ -860,7 +940,7 @@ function () {
     var header = airData.header,
         data = airData.data;
     var hour = getCurrentHour(airData);
-    var elevation = header.modelElevation || header.elevation;
+    var elevation = header.modelElevation;
     var dryAdiabatTemp = data['temp-surface'][hour];
     var cloudBase = elevation + (dryAdiabatTemp - data['dewpoint-surface'][hour]) * 122;
     var layers = {
