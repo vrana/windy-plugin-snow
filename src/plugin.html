@@ -709,6 +709,7 @@ function showSounding(airData) {
 	for (const key in layers) {
 		layers[key].sort((a, b) => b[1] - a[1]);
 	}
+	const groundTemp = layers.temp[0][0];
 	layers.temp = layers.temp.map(a => [420 + (a[0] + zeroK - maxTemp) * 10, a[1]]);
 	layers.dewpoint = layers.dewpoint.map(a => [420 + (a[0] + zeroK - maxTemp) * 10, a[1]]);
 	const clipPath = svg.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'clipPath'));
@@ -749,9 +750,10 @@ function showSounding(airData) {
 	}
 	svgText(svg, getModel(), 395, 22, '#999');
 	svgText(svg, (new Date(data.hours[hour])).getHours() + ':00', 395, 37, '#999');
-	svgText(svg, '', 395, 72, '#555', {'class': 'height'});
-	svgText(svg, '', 378, 87, '#52bea8', {'class': 'windDir'});
-	svgText(svg, '', 385, 87, '#293', {'class': 'windSpeed', 'text-anchor': 'start'});
+	svgText(svg, '', 395, 64, '#555', {'class': 'height'});
+	svgText(svg, '', 378, 79, '#52bea8', {'class': 'windDir'});
+	svgText(svg, '', 385, 79, '#293', {'class': 'windSpeed', 'text-anchor': 'start'});
+	svgText(svg, '', 395, 94, '#a22', {'class': 'tempDiff'});
 	svg.onmousemove = (event) => {
 		const zoom = parseInt(svg.style.zoom) / 100;
 		const x = event.offsetX / zoom;
@@ -762,14 +764,16 @@ function showSounding(airData) {
 			svg.querySelector('.windDir').textContent = '↓';
 			const u = interpolate(airData, 'wind_u', hour, height);
 			const v = interpolate(airData, 'wind_v', hour, height);
-			svg.querySelector('.windDir').setAttribute('transform', 'rotate(' + ((180 * Math.atan2(-v, u) / Math.PI - 90 + 360) % 360) + ',378,82)');
+			svg.querySelector('.windDir').setAttribute('transform', 'rotate(' + ((180 * Math.atan2(-v, u) / Math.PI - 90 + 360) % 360) + ',378,74)');
 			svg.querySelector('.windSpeed').textContent = Math.sqrt(Math.pow(u, 2) + Math.pow(v, 2)).toFixed(1) + 'm/s';
+			svg.querySelector('.tempDiff').textContent = 'Δ ' + (groundTemp + (ground - height) * .98 / 100 - interpolate(airData, 'temp', hour, height)).toFixed(1) + '°C';
 			svg.querySelector('.guideline').style.visibility = 'visible';
 			svg.querySelector('.guideline').setAttribute('d', 'M20 ' + y + 'L420 ' + y);
 		} else {
 			svg.querySelector('.height').textContent = '';
 			svg.querySelector('.windDir').textContent = '';
 			svg.querySelector('.windSpeed').textContent = '';
+			svg.querySelector('.tempDiff').textContent = '';
 			svg.querySelector('.guideline').style.visibility = 'hidden';
 		}
 	};

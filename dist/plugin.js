@@ -22,7 +22,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "2.1.6",
+  "version": "2.1.7",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -818,6 +818,7 @@ function () {
       });
     }
 
+    var groundTemp = layers.temp[0][0];
     layers.temp = layers.temp.map(function (a) {
       return [420 + (a[0] + zeroK - maxTemp) * 10, a[1]];
     });
@@ -900,15 +901,18 @@ function () {
 
     svgText(svg, getModel(), 395, 22, '#999');
     svgText(svg, new Date(data.hours[hour]).getHours() + ':00', 395, 37, '#999');
-    svgText(svg, '', 395, 72, '#555', {
+    svgText(svg, '', 395, 64, '#555', {
       'class': 'height'
     });
-    svgText(svg, '', 378, 87, '#52bea8', {
+    svgText(svg, '', 378, 79, '#52bea8', {
       'class': 'windDir'
     });
-    svgText(svg, '', 385, 87, '#293', {
+    svgText(svg, '', 385, 79, '#293', {
       'class': 'windSpeed',
       'text-anchor': 'start'
+    });
+    svgText(svg, '', 395, 94, '#a22', {
+      'class': 'tempDiff'
     });
 
     svg.onmousemove = function (event) {
@@ -922,14 +926,16 @@ function () {
         svg.querySelector('.windDir').textContent = '↓';
         var u = interpolate(airData, 'wind_u', hour, height);
         var v = interpolate(airData, 'wind_v', hour, height);
-        svg.querySelector('.windDir').setAttribute('transform', 'rotate(' + (180 * Math.atan2(-v, u) / Math.PI - 90 + 360) % 360 + ',378,82)');
+        svg.querySelector('.windDir').setAttribute('transform', 'rotate(' + (180 * Math.atan2(-v, u) / Math.PI - 90 + 360) % 360 + ',378,74)');
         svg.querySelector('.windSpeed').textContent = Math.sqrt(Math.pow(u, 2) + Math.pow(v, 2)).toFixed(1) + 'm/s';
+        svg.querySelector('.tempDiff').textContent = 'Δ ' + (groundTemp + (ground - height) * .98 / 100 - interpolate(airData, 'temp', hour, height)).toFixed(1) + '°C';
         svg.querySelector('.guideline').style.visibility = 'visible';
         svg.querySelector('.guideline').setAttribute('d', 'M20 ' + y + 'L420 ' + y);
       } else {
         svg.querySelector('.height').textContent = '';
         svg.querySelector('.windDir').textContent = '';
         svg.querySelector('.windSpeed').textContent = '';
+        svg.querySelector('.tempDiff').textContent = '';
         svg.querySelector('.guideline').style.visibility = 'hidden';
       }
     };
