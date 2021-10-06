@@ -718,8 +718,11 @@ function showSounding(airData) {
 	polygon.setAttribute('points', '20,0 420,0 420,400 20,400 20,0');
 	const g = svg.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'g'));
 	g.setAttribute('clip-path', 'url(#clip)');
-	svgLine(g, [layers.temp[0], [layers.temp[0][0] - (ceiling - ground) * 9.8 / 100, 0]], '#db5', 1);
-	svgLine(g, [layers.dewpoint[0], [layers.dewpoint[0][0] - (ceiling - ground) * 9.8 / 5 / 100, 0]], '#db5', 1); // 5 is used by XCMeteo.
+	const cloudBase = [0, layers.temp[0][1] - (layers.temp[0][0] - layers.dewpoint[0][0]) / (9.8 / 10 * 4/5)]; // 5 is used by XCMeteo.
+	cloudBase[0] = layers.temp[0][0] - (layers.temp[0][1] - cloudBase[1]) * 9.8 / 10;
+	svgLine(g, [layers.temp[0], cloudBase], '#db5', 1);
+	svgLine(g, [cloudBase, [cloudBase[0] - cloudBase[1] * 9.8 / 10 * .6, 0]], '#db5', 1);
+	svgLine(g, [layers.dewpoint[0], cloudBase], '#db5', 1);
 	svgLine(g, layers.temp, '#a22', 2);
 	svgLine(g, layers.dewpoint, '#23a', 2);
 	svgLine(g, layers.wind_u.map((u, i) => [20 + Math.sqrt(Math.pow(u[0], 2) + Math.pow(layers.wind_v[i][0], 2)) * 25, u[1]]), '#293', 1.5);

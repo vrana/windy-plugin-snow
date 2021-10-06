@@ -22,7 +22,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "2.1.7",
+  "version": "2.1.9",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -412,7 +412,7 @@ function () {
         return /xcontest\.org/.test(url);
       });
     });
-    extra.push('<a href="' + (xcontestLink || 'https://www.xcontest.org/world/en/flights-search/?list[sort]=pts&filter[point]=' + latLon.replace(/(.+) (.+)/, '$2+$1') + '&filter[radius]=2000&filter[date_mode]=period#filter-mode') + '"' + (localSites[0].flights != null ? ' title="' + localSites[0].flights + ' ' + translate('flights per year', 'letů za rok') + '"' : '') + ' target="_blank"><img src="https://s.xcontest.org/img/xcontest.gif" width="25" height="12" alt="XContest" style="vertical-align: middle;"></a>');
+    extra.push('<a href="' + (xcontestLink || 'https://www.xcontest.org/world/en/flights-search/?list[sort]=pts&filter[point]=' + latLon.replace(/(.+) (.+)/, '$2+$1') + '&filter[radius]=2000&filter[date_mode]=period#filter-mode') + '" target="_blank"><img src="https://s.xcontest.org/img/xcontest.gif" width="25" height="12" alt="XContest" style="vertical-align: middle;"></a>' + (localSites[0].flights != null ? ' <span title="' + translate('per year', 'za rok') + '">(' + localSites[0].flights + ' ' + translate('flights', 'letů') + ')</span>,' : ''));
     var s = localSites[0].name;
 
     if (localSites.length > 1) {
@@ -831,8 +831,11 @@ function () {
     polygon.setAttribute('points', '20,0 420,0 420,400 20,400 20,0');
     var g = svg.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'g'));
     g.setAttribute('clip-path', 'url(#clip)');
-    svgLine(g, [layers.temp[0], [layers.temp[0][0] - (ceiling - ground) * 9.8 / 100, 0]], '#db5', 1);
-    svgLine(g, [layers.dewpoint[0], [layers.dewpoint[0][0] - (ceiling - ground) * 9.8 / 5 / 100, 0]], '#db5', 1);
+    var cloudBase = [0, layers.temp[0][1] - (layers.temp[0][0] - layers.dewpoint[0][0]) / (9.8 / 10 * 4 / 5)];
+    cloudBase[0] = layers.temp[0][0] - (layers.temp[0][1] - cloudBase[1]) * 9.8 / 10;
+    svgLine(g, [layers.temp[0], cloudBase], '#db5', 1);
+    svgLine(g, [cloudBase, [cloudBase[0] - cloudBase[1] * 9.8 / 10 * .6, 0]], '#db5', 1);
+    svgLine(g, [layers.dewpoint[0], cloudBase], '#db5', 1);
     svgLine(g, layers.temp, '#a22', 2);
     svgLine(g, layers.dewpoint, '#23a', 2);
     svgLine(g, layers.wind_u.map(function (u, i) {
