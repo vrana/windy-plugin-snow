@@ -22,7 +22,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "2.1.9",
+  "version": "2.1.10",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -45,7 +45,8 @@ function () {
 
   var store = W.require('store');
 
-  var map = W.require('map');
+  var _W$require = W.require('map'),
+      map = _W$require.map;
 
   var interpolator = W.require('interpolator');
 
