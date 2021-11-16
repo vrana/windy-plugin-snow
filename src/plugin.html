@@ -17,7 +17,7 @@ function onLaunchLoad() {
 function getModel() {
 	const product = store.get('product');
 	// https://github.com/windycom/windy-plugins/blob/master/docs/WINDY_API.md#module-plugin-data-loader
-	return ['gfs', 'icon', 'iconEu'].indexOf(product) != -1 ? product : 'ecmwf';
+	return ['gfs', 'icon', 'iconD2', 'iconEu'].indexOf(product) != -1 ? product : 'ecmwf';
 }
 
 function getLaunchAttrs(site) {

@@ -22,7 +22,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "2.1.10",
+  "version": "2.1.11",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -56,7 +56,7 @@ function () {
 
   function getModel() {
     var product = store.get('product');
-    return ['gfs', 'icon', 'iconEu'].indexOf(product) != -1 ? product : 'ecmwf';
+    return ['gfs', 'icon', 'iconD2', 'iconEu'].indexOf(product) != -1 ? product : 'ecmwf';
   }
 
   function getLaunchAttrs(site) {
