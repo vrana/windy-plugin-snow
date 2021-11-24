@@ -172,64 +172,6 @@ function () {
     });
   }
 
-  function findTempDiffAtSurface(airData) {
-    var header = airData.header,
-        data = airData.data;
-    var hour = getCurrentHour(airData);
-    var above;
-    var below;
-
-    for (var key in data) {
-      var match = /^gh-(\d.+)/.exec(key);
-
-      if (match) {
-        var value = data[key][hour];
-
-        if (value > header.modelElevation) {
-          if (!above || value < data['gh-' + above][hour]) {
-            above = match[1];
-          }
-        } else if (!below || value > data['gh-' + below][hour]) {
-          below = match[1];
-        }
-      }
-    }
-
-    var ghAbove = data['gh-' + above][hour];
-    var tempAbove = data['temp-' + above][hour];
-    var ratio = (ghAbove - header.modelElevation) / (ghAbove - data['gh-' + below][hour]);
-    return tempAbove + (data['temp-' + below][hour] - tempAbove) * ratio - data['temp-surface'][hour];
-  }
-
-  function setModelElevation(airData, tempDiff) {
-    var header = airData.header,
-        data = airData.data;
-    var hour = getCurrentHour(airData);
-    var tempSurface = data['temp-surface'][hour] + tempDiff;
-    var above;
-    var below;
-
-    for (var key in data) {
-      var match = /^temp-(\d.+)/.exec(key);
-
-      if (match) {
-        var value = data[key][hour];
-
-        if (value < tempSurface) {
-          if (!above || value > data['temp-' + above][hour]) {
-            above = match[1];
-          }
-        } else if (!below || value < data['temp-' + below][hour]) {
-          below = match[1];
-        }
-      }
-    }
-
-    var ghBelow = data['gh-' + below][hour];
-    var tempBelow = data['temp-' + below][hour];
-    header.modelElevation = ghBelow + (data['gh-' + above][hour] - ghBelow) * (tempBelow - tempSurface) / (tempBelow - data['temp-' + above][hour]);
-  }
-
   function createMarker(latLon) {
     var marker = L.marker(getLatLon(latLon), {
       icon: newIcon(getIconUrl(sites[latLon], null), sites[latLon]),
@@ -253,26 +195,15 @@ function () {
         windyHttp.get(windyUrls.getMeteogramForecast(model, Object.assign({
           step: 1
         }, getLatLon(latLon)))).then(function (airData) {
-          function loaded() {
+          if (airData.data.header.modelElevation) {
             airDatas[model][latLon] = airData.data;
             markers[latLon].setPopupContent(getTooltip(latLon));
-          }
-
-          function loaded2() {
-            setModelElevation(airData.data, findTempDiffAtSurface(airDatas['ecmwf'][latLon]));
-            loaded();
-          }
-
-          if (airData.data.header.modelElevation) {
-            loaded();
-          } else if (airDatas['ecmwf'][latLon]) {
-            loaded2();
           } else {
             windyHttp.get(windyUrls.getMeteogramForecast('ecmwf', Object.assign({
               step: 1
             }, getLatLon(latLon)))).then(function (ecmwf) {
               airDatas['ecmwf'][latLon] = ecmwf.data;
-              loaded2();
+              markers[latLon].setPopupContent(getTooltip(latLon));
             });
           }
         });
@@ -374,6 +305,7 @@ function () {
     var wind = getWind(latLon);
     var forecast = forecasts[model] && forecasts[model][latLon];
     var airData = airDatas[model] && airDatas[model][latLon];
+    airData = airData && airData.header.modelElevation ? airData : airDatas['ecmwf'][latLon];
     var tooltips = localSites.map(function (site) {
       return '<b style="font-size: 1.25em;' + (site.name.length >= 20 ? 'text-overflow: ellipsis; max-width: 180px; display: inline-block; overflow: hidden; vertical-align: text-bottom;" title="' + html(site.name) : '') + '"><a' + getLaunchAttrs(site) + (isSiteForbidden(site) ? ' style="color: red;"' + (site.flying_status == 4 ? ' title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') : '') + '>' + html(site.name) + '</a></b>' + (localSites.length > 1 ? ' <img src="' + getIconUrl([site], wind, ['green', 'orange', 'gray', 'red']) + '" width="12" height="12" alt="">' : '') + [site.url].concat(site.urls || []).map(getUrlLink).join('') + (site.altitude ? ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' : '') + (site.superelevation ? ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)' : '') + (site.parkings && site.parkings.length ? site.parkings.map(function (parking) {
         return ' <a href="https://www.google.com/maps/dir/?api=1&destination=' + parking.latitude + ',' + parking.longitude + '" target="_blank"><img src="https://www.google.com/images/branding/product/ico/maps15_bnuw3a_32dp.ico" width="12" height="12" alt="" title="' + translate('parking', 'parkoviště') + html(parking.name == site.name && site.parkings.length == 1 ? '' : ' ' + parking.name) + '" style="vertical-align: middle;"></a>';
@@ -446,7 +378,7 @@ function () {
     var t = store.get('path').replace(/(\d{4})\/?(\d{2})\/?(\d{2})\/?(\d+)/, function (match, year, month, day, hour) {
       return year + '-' + month + '-' + day + 'T' + String(Math.round(hour / 3) * 3).padStart(2, 0) + ':00:00Z';
     });
-    extra.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">' + translate('Possible climb', 'Dostupy') + '</span>:' + ' <a class="climb" href="http://www.xcmeteo.net/?p=' + latLon.replace(/(.+) (.+)/, '$2x$1') + ',t=' + t + ',s=' + encodeURIComponent(s) + '" target="_blank" title="' + translate('source', 'zdroj') + ': Windy ' + model + '">' + (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-') + '</a>' + (displaySounding ? ' <a href="https://pg.vrana.cz/gfs/#explain" target="_blank"><sup>?</sup></a>' : ''));
+    extra.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">' + translate('Possible climb', 'Dostupy') + '</span>:' + ' <a class="climb" href="http://www.xcmeteo.net/?p=' + latLon.replace(/(.+) (.+)/, '$2x$1') + ',t=' + t + ',s=' + encodeURIComponent(s) + '" target="_blank" title="' + (airData ? translate('source', 'zdroj') + ': Windy ' + airData.header.model : '') + '">' + (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-') + '</a>' + (displaySounding ? ' <a href="https://pg.vrana.cz/gfs/#explain" target="_blank"><sup>?</sup></a>' : ''));
     tooltips.push(extra.join(' '), '');
     var div = document.createElement('div');
     div.style.whiteSpace = 'nowrap';
@@ -903,7 +835,7 @@ function () {
       svgText(svg, xAxis[x].text, x, 415, xAxis[x].color);
     }
 
-    svgText(svg, getModel(), 395, 22, '#999');
+    svgText(svg, airData.header.model, 395, 22, '#999');
     svgText(svg, new Date(data.hours[hour]).getHours() + ':00', 395, 37, '#999');
     svgText(svg, '', 395, 64, '#555', {
       'class': 'height'

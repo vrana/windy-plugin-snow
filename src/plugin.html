@@ -109,7 +109,7 @@ let ForecastArray;
  *   data: Object<string, Array<ForecastArray>>,
  * }>>} key: model, key2: latLon, key in data: day */
 const forecasts = {};
-/** @typedef {{header: {modelElevation: number}, data: {
+/** @typedef {{header: {modelElevation: ?number}, data: {
  *   hours: Array<number>,
  *   dewpoint-surface: Array<number>,
  *   temp-surface: Array<number>,
@@ -161,54 +161,6 @@ function init() {
 	});
 }
 
-function findTempDiffAtSurface(airData) {
-	const {header, data} = airData;
-	const hour = getCurrentHour(airData);
-	let above;
-	let below;
-	for (const key in data) {
-		const match = /^gh-(\d.+)/.exec(key);
-		if (match) {
-			const value = data[key][hour];
-			if (value > header.modelElevation) {
-				if (!above || value < data['gh-' + above][hour]) {
-					above = match[1];
-				}
-			} else if (!below || value > data['gh-' + below][hour]) {
-				below = match[1];
-			}
-		}
-	}
-	const ghAbove = data['gh-' + above][hour];
-	const tempAbove = data['temp-' + above][hour];
-	const ratio = (ghAbove - header.modelElevation) / (ghAbove - data['gh-' + below][hour]);
-	return tempAbove + (data['temp-' + below][hour] - tempAbove) * ratio - data['temp-surface'][hour];
-}
-
-function setModelElevation(airData, tempDiff) {
-	const {header, data} = airData;
-	const hour = getCurrentHour(airData);
-	const tempSurface = data['temp-surface'][hour] + tempDiff;
-	let above;
-	let below;
-	for (const key in data) {
-		const match = /^temp-(\d.+)/.exec(key);
-		if (match) {
-			const value = data[key][hour];
-			if (value < tempSurface) {
-				if (!above || value > data['temp-' + above][hour]) {
-					above = match[1];
-				}
-			} else if (!below || value < data['temp-' + below][hour]) {
-				below = match[1];
-			}
-		}
-	}
-	const ghBelow = data['gh-' + below][hour];
-	const tempBelow = data['temp-' + below][hour];
-	header.modelElevation = ghBelow + (data['gh-' + above][hour] - ghBelow) * (tempBelow - tempSurface) / (tempBelow - data['temp-' + above][hour]);
-}
-
 function createMarker(latLon) {
 	const marker = L.marker(getLatLon(latLon), {
 		icon: newIcon(getIconUrl(sites[latLon], null), sites[latLon]),
@@ -225,24 +177,13 @@ function createMarker(latLon) {
 		airDatas[model] = airDatas[model] || {};
 		if (!airDatas[model][latLon]) {
 			windyHttp.get(windyUrls.getMeteogramForecast(model, Object.assign({step: 1}, getLatLon(latLon)))).then(airData => {
-				// Cache: response has Expires: -1.
-				function loaded() {
+				if (airData.data.header.modelElevation) {
 					airDatas[model][latLon] = airData.data;
 					markers[latLon].setPopupContent(getTooltip(latLon));
-				}
-				function loaded2() {
-					// header.elevation doesn't match the surface temperature. Compute the surface temperature diff from ECMWF (which is the only one with modelElevation) and then use this diff to approximate the modelElevation in other models.
-					setModelElevation(airData.data, findTempDiffAtSurface(airDatas['ecmwf'][latLon]));
-					loaded();
-				}
-				if (airData.data.header.modelElevation) {
-					loaded();
-				} else if (airDatas['ecmwf'][latLon]) {
-					loaded2();
 				} else {
 					windyHttp.get(windyUrls.getMeteogramForecast('ecmwf', Object.assign({step: 1}, getLatLon(latLon)))).then(ecmwf => {
 						airDatas['ecmwf'][latLon] = ecmwf.data;
-						loaded2();
+						markers[latLon].setPopupContent(getTooltip(latLon));
 					});
 				}
 			});
@@ -345,7 +286,8 @@ function getTooltip(latLon) {
 	const model = getModel();
 	const wind = getWind(latLon);
 	const forecast = forecasts[model] && forecasts[model][latLon];
-	const airData = airDatas[model] && airDatas[model][latLon];
+	let airData = airDatas[model] && airDatas[model][latLon];
+	airData = airData && airData.header.modelElevation ? airData : airDatas['ecmwf'][latLon];
 	const tooltips = localSites.map(site => {
 		return '<b style="font-size: 1.25em;' + (site.name.length >= 20 ? 'text-overflow: ellipsis; max-width: 180px; display: inline-block; overflow: hidden; vertical-align: text-bottom;" title="' + html(site.name) : '') + '"><a' + getLaunchAttrs(site)
 			+ (isSiteForbidden(site) ? ' style="color: red;"' + (site.flying_status == 4 ? ' title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') : '') + '>' + html(site.name) + '</a></b>'
@@ -407,7 +349,7 @@ function getTooltip(latLon) {
 	const t = store.get('path').replace(/(\d{4})\/?(\d{2})\/?(\d{2})\/?(\d+)/, (match, year, month, day, hour) => year + '-' + month + '-' + day + 'T' + String(Math.round(hour / 3) * 3).padStart(2, 0) + ':00:00Z');
 	extra.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">'
 		+ translate('Possible climb', 'Dostupy') + '</span>:'
-		+ ' <a class="climb" href="http://www.xcmeteo.net/?p=' + latLon.replace(/(.+) (.+)/, '$2x$1') + ',t=' + t + ',s=' + encodeURIComponent(s) + '" target="_blank" title="' + translate('source', 'zdroj') + ': Windy ' + model + '">'
+		+ ' <a class="climb" href="http://www.xcmeteo.net/?p=' + latLon.replace(/(.+) (.+)/, '$2x$1') + ',t=' + t + ',s=' + encodeURIComponent(s) + '" target="_blank" title="' + (airData ? translate('source', 'zdroj') + ': Windy ' + airData.header.model : '') + '">'
 		+ (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-')
 		+ '</a>' + (displaySounding ? ' <a href="https://pg.vrana.cz/gfs/#explain" target="_blank"><sup>?</sup></a>' : '')
 	);
@@ -751,7 +693,7 @@ function showSounding(airData) {
 	for (const x in xAxis) {
 		svgText(svg, xAxis[x].text, x, 415, xAxis[x].color);
 	}
-	svgText(svg, getModel(), 395, 22, '#999');
+	svgText(svg, airData.header.model, 395, 22, '#999');
 	svgText(svg, (new Date(data.hours[hour])).getHours() + ':00', 395, 37, '#999');
 	svgText(svg, '', 395, 64, '#555', {'class': 'height'});
 	svgText(svg, '', 378, 79, '#52bea8', {'class': 'windDir'});
