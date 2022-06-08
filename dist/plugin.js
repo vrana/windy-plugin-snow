@@ -22,7 +22,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "2.1.11",
+  "version": "2.1.12",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -195,7 +195,7 @@ function () {
         windyHttp.get(windyUrls.getMeteogramForecast(model, Object.assign({
           step: 1
         }, getLatLon(latLon)))).then(function (airData) {
-          if (airData.data.header.modelElevation) {
+          if (airData.data.header.modelElevation && airData.data.data['temp-surface']) {
             airDatas[model][latLon] = airData.data;
             markers[latLon].setPopupContent(getTooltip(latLon));
           } else {
@@ -305,7 +305,7 @@ function () {
     var wind = getWind(latLon);
     var forecast = forecasts[model] && forecasts[model][latLon];
     var airData = airDatas[model] && airDatas[model][latLon];
-    airData = airData && airData.header.modelElevation ? airData : airDatas['ecmwf'][latLon];
+    airData = airData && airData.header.modelElevation && airData.data['temp-surface'] ? airData : airDatas['ecmwf'][latLon];
     var tooltips = localSites.map(function (site) {
       return '<b style="font-size: 1.25em;' + (site.name.length >= 20 ? 'text-overflow: ellipsis; max-width: 180px; display: inline-block; overflow: hidden; vertical-align: text-bottom;" title="' + html(site.name) : '') + '"><a' + getLaunchAttrs(site) + (isSiteForbidden(site) ? ' style="color: red;"' + (site.flying_status == 4 ? ' title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') : '') + '>' + html(site.name) + '</a></b>' + (localSites.length > 1 ? ' <img src="' + getIconUrl([site], wind, ['green', 'orange', 'gray', 'red']) + '" width="12" height="12" alt="">' : '') + [site.url].concat(site.urls || []).map(getUrlLink).join('') + (site.altitude ? ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' : '') + (site.superelevation ? ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)' : '') + (site.parkings && site.parkings.length ? site.parkings.map(function (parking) {
         return ' <a href="https://www.google.com/maps/dir/?api=1&destination=' + parking.latitude + ',' + parking.longitude + '" target="_blank"><img src="https://www.google.com/images/branding/product/ico/maps15_bnuw3a_32dp.ico" width="12" height="12" alt="" title="' + translate('parking', 'parkoviště') + html(parking.name == site.name && site.parkings.length == 1 ? '' : ' ' + parking.name) + '" style="vertical-align: middle;"></a>';
