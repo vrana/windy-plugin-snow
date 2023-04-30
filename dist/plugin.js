@@ -22,7 +22,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "2.1.12",
+  "version": "2.1.13",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -378,7 +378,13 @@ function () {
     var t = store.get('path').replace(/(\d{4})\/?(\d{2})\/?(\d{2})\/?(\d+)/, function (match, year, month, day, hour) {
       return year + '-' + month + '-' + day + 'T' + String(Math.round(hour / 3) * 3).padStart(2, 0) + ':00:00Z';
     });
-    extra.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">' + translate('Possible climb', 'Dostupy') + '</span>:' + ' <a class="climb" href="http://www.xcmeteo.net/?p=' + latLon.replace(/(.+) (.+)/, '$2x$1') + ',t=' + t + ',s=' + encodeURIComponent(s) + '" target="_blank" title="' + (airData ? translate('source', 'zdroj') + ': Windy ' + airData.header.model : '') + '">' + (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-') + '</a>' + (displaySounding ? ' <a href="https://pg.vrana.cz/gfs/#explain" target="_blank"><sup>?</sup></a>' : ''));
+
+    var _ref = airData ? computeCeiling(airData) : [0, false],
+        _ref2 = _slicedToArray(_ref, 2),
+        ceiling = _ref2[0],
+        cloudBase = _ref2[1];
+
+    extra.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">' + (cloudBase ? translate('Cloud base', 'Základny') : translate('Possible climb', 'Dostupy')) + '</span>:' + ' <a class="climb" href="http://www.xcmeteo.net/?p=' + latLon.replace(/(.+) (.+)/, '$2x$1') + ',t=' + t + ',s=' + encodeURIComponent(s) + '" target="_blank" title="' + (airData ? translate('source', 'zdroj') + ': Windy ' + airData.header.model : '') + '">' + (airData ? Math.round(ceiling / 10) * 10 + ' m' : '-') + '</a>' + (displaySounding ? ' <a href="https://pg.vrana.cz/gfs/#explain" target="_blank"><sup>?</sup></a>' : ''));
     tooltips.push(extra.join(' '), '');
     var div = document.createElement('div');
     div.style.whiteSpace = 'nowrap';
@@ -920,7 +926,7 @@ function () {
         prevTemp = temp;
       }
     });
-    return Math.min(ceiling, cloudBase);
+    return [Math.min(ceiling, cloudBase), ceiling > cloudBase];
   }
 
   function getCurrentHour(airData) {

@@ -347,10 +347,11 @@ function getTooltip(latLon) {
 		s = names.length ? names.join(' ') : s;
 	}
 	const t = store.get('path').replace(/(\d{4})\/?(\d{2})\/?(\d{2})\/?(\d+)/, (match, year, month, day, hour) => year + '-' + month + '-' + day + 'T' + String(Math.round(hour / 3) * 3).padStart(2, 0) + ':00:00Z');
+	const [ceiling, cloudBase] = (airData ? computeCeiling(airData) : [0, false]);
 	extra.push('<span title="' + translate('lower from intersections of dry adiabat with temperature and isogram', 'nižší z průsečíků suché adiabaty s teplotou a izogramou') + '">'
-		+ translate('Possible climb', 'Dostupy') + '</span>:'
+		+ (cloudBase ? translate('Cloud base', 'Základny') : translate('Possible climb', 'Dostupy')) + '</span>:'
 		+ ' <a class="climb" href="http://www.xcmeteo.net/?p=' + latLon.replace(/(.+) (.+)/, '$2x$1') + ',t=' + t + ',s=' + encodeURIComponent(s) + '" target="_blank" title="' + (airData ? translate('source', 'zdroj') + ': Windy ' + airData.header.model : '') + '">'
-		+ (airData ? Math.round(computeCeiling(airData) / 10) * 10 + ' m' : '-')
+		+ (airData ? Math.round(ceiling / 10) * 10 + ' m' : '-')
 		+ '</a>' + (displaySounding ? ' <a href="https://pg.vrana.cz/gfs/#explain" target="_blank"><sup>?</sup></a>' : '')
 	);
 	tooltips.push(extra.join(' '), '');
@@ -727,7 +728,7 @@ function showSounding(airData) {
 
 /** Computes ceiling: min(dry abiabat crossing humidity, temperature crossing dry adiabat).
  * @param {AirData} airData
- * @return number Altitude in meters
+ * @return [number, boolean] [Altitude in meters, is cloud base]
  */
 function computeCeiling(airData) {
 	const {header, data} = airData;
@@ -764,7 +765,7 @@ function computeCeiling(airData) {
 			prevTemp = temp;
 		}
 	});
-	return Math.min(ceiling, cloudBase);
+	return [Math.min(ceiling, cloudBase), ceiling > cloudBase];
 }
 
 function getCurrentHour(airData) {
