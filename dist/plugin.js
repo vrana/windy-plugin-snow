@@ -22,7 +22,7 @@ W.loadPlugin(
 /* Mounting options */
 {
   "name": "windy-plugin-pg-mapa",
-  "version": "2.1.13",
+  "version": "2.1.14",
   "author": "Jakub Vrana",
   "repository": {
     "type": "git",
@@ -293,7 +293,7 @@ function () {
     } else if (/dhv\.de/.test(url)) {
       return ' <a href="' + url + '" target="_blank"><img src="https://www.dhv.de/fileadmin/templates/dhv2011/img/favicon/dhv.ico" width="12" height="12" alt="" title="DHV"></a>';
     } else if (/paraglidingearth\.com/.test(url)) {
-      return ' <a href="' + url + '" target="_blank"><img src="https://framagit.org/uploads/-/system/project/avatar/15927/pge.png?width=40" width="20" height="12" alt="" title="Paragliding Earth"></a>';
+      return ' <a href="' + url + '" target="_blank"><img src="https://www.paraglidingearth.com/assets/img/favicon.ico" width="12" height="12" alt="" title="Paragliding Earth"></a>';
     }
 
     return '';
