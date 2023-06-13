@@ -1,5 +1,3 @@
-<plugin>
-<script>
 import broadcast from '@windy/broadcast';
 import interpolator from '@windy/interpolator';
 import {map} from '@windy/map';
@@ -44,7 +42,7 @@ function getForecastAttrs(latLon) {
 	return ' href=\'javascript:W.store.set("detailDisplay", "meteogram"); W.broadcast.fire("rqstOpen", "detail", ' + JSON.stringify(getLatLon(latLon)) + ');\'';
 }
 
-this.onopen = function () {
+export const onopen = function () {
 	const openInApp = document.getElementById('open-in-app');
 	if (openInApp) {
 		openInApp.style.display = 'none';
@@ -798,5 +796,3 @@ function translate(english, czech) {
 function html(text) {
 	return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 }
-</script>
-</plugin>
