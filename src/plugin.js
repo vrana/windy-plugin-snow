@@ -6,6 +6,7 @@ import utils from '@windy/utils';
 import windyUrls from '@windy/urls';
 import windyHttp from '@windy/http';
 
+/** Used in API version. */
 function onLaunchLoad() {
 }
 
@@ -286,10 +287,11 @@ function getTooltip(latLon) {
 	const forecast = forecasts[model] && forecasts[model][latLon];
 	let airData = airDatas[model] && airDatas[model][latLon];
 	airData = airData && airData.header.modelElevation && airData.data['temp-surface'] ? airData : airDatas['ecmwf'][latLon];
+	const colors = ['green', 'orange', 'gray', 'red'];
 	const tooltips = localSites.map(site => {
 		return '<b style="font-size: 1.25em;' + (site.name.length >= 20 ? 'text-overflow: ellipsis; max-width: 180px; display: inline-block; overflow: hidden; vertical-align: text-bottom;" title="' + html(site.name) : '') + '"><a' + getLaunchAttrs(site)
 			+ (isSiteForbidden(site) ? ' style="color: red;"' + (site.flying_status == 4 ? ' title="' + translate('flying forbidden', 'létání zakázáno') + '"' : '') : '') + '>' + html(site.name) + '</a></b>'
-			+ (localSites.length > 1 ? ' <img src="' + getIconUrl([site], wind, ['green', 'orange', 'gray', 'red']) + '" width="12" height="12" alt="">' : '')
+			+ (localSites.length > 1 ? ' <img src="' + getIconUrl([site], wind, colors) + '" width="12" height="12" alt="">' : '')
 			+ [site.url].concat(site.urls || []).map(getUrlLink).join('')
 			+ (site.altitude ? ' <span title="' + translate('elevation', 'nadmořská výška') + '">' + site.altitude + ' ' + translate('masl', 'mnm') + '</span>' : '')
 			+ (site.superelevation ? ' (<span title="' + translate('vertical metre', 'převýšení') + '">' + site.superelevation + ' m</span>)' : '')
@@ -304,7 +306,6 @@ function getTooltip(latLon) {
 	const data = forecast && !/FAKE/.test(forecast.header.note) && getForecast(forecast);
 	let extra = [];
 	if (wind) {
-		const colors = ['green', 'orange', 'gray', 'red'];
 		// TODO: Get the high wind from airData for the other overlays.
 		const windHeight = ' ' + (store.get('level') == 'surface' || store.get('overlay') != 'wind' ? translate('on surface', 'na zemi') : translate('at', 'v') + ' ' + store.get('level'));
 		extra.push('<a' + getWindAttrs(latLon) + '>'
@@ -426,7 +427,7 @@ function getIconUrl(sites, wind, colors = ['lime', 'yellow', 'silver', 'red']) {
  */
 function getColor(sites, wind, colors = ['lime', 'yellow', 'silver', 'red']) {
 	if (sites.every(isSiteForbidden)) {
-		return colors[2];
+		return 'black';
 	}
 	if (!wind) {
 		return 'white';
@@ -439,7 +440,7 @@ function getColor(sites, wind, colors = ['lime', 'yellow', 'silver', 'red']) {
  * @return {boolean}
  */
 function isSiteForbidden(site) {
-	return (site.flying_status == 4 || site.active == 0);
+		return (site.flying_status == 4 || site.active == 0);
 }
 
 /** Gets color index for wind speed.
