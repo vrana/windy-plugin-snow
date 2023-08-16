@@ -652,6 +652,7 @@ function showSounding(airData) {
 		layers[key].sort((a, b) => b[1] - a[1]);
 	}
 	const groundTemp = layers.temp[0][0];
+	const cloudBase = ground + (groundTemp - layers.dewpoint[0][0]) * 122;
 	layers.temp = layers.temp.map(a => [420 + (a[0] + zeroK - maxTemp) * 10, a[1]]);
 	layers.dewpoint = layers.dewpoint.map(a => [420 + (a[0] + zeroK - maxTemp) * 10, a[1]]);
 	const clipPath = svg.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'clipPath'));
@@ -660,11 +661,11 @@ function showSounding(airData) {
 	polygon.setAttribute('points', '20,0 420,0 420,400 20,400 20,0');
 	const g = svg.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'g'));
 	g.setAttribute('clip-path', 'url(#clip)');
-	const cloudBase = [0, layers.temp[0][1] - (layers.temp[0][0] - layers.dewpoint[0][0]) / (9.8 / 10 * 4/5)]; // 5 is used by XCMeteo.
-	cloudBase[0] = layers.temp[0][0] - (layers.temp[0][1] - cloudBase[1]) * 9.8 / 10;
-	svgLine(g, [layers.temp[0], cloudBase], '#db5', 1);
-	svgLine(g, [cloudBase, [cloudBase[0] - cloudBase[1] * 9.8 / 10 * .6, 0]], '#db5', 1);
-	svgLine(g, [layers.dewpoint[0], cloudBase], '#db5', 1);
+	const cloudBasePoint = [0, layers.temp[0][1] - (layers.temp[0][0] - layers.dewpoint[0][0]) / (.98 * 4/5)]; // 5 is used by XCMeteo.
+	cloudBasePoint[0] = layers.temp[0][0] - (layers.temp[0][1] - cloudBasePoint[1]) * .98;
+	svgLine(g, [layers.temp[0], cloudBasePoint], '#db5', 1);
+	svgLine(g, [cloudBasePoint, [cloudBasePoint[0] - cloudBasePoint[1] * .98 * .6, 0]], '#db5', 1);
+	svgLine(g, [layers.dewpoint[0], cloudBasePoint], '#db5', 1);
 	svgLine(g, layers.temp, '#a22', 2);
 	svgLine(g, layers.dewpoint, '#23a', 2);
 	svgLine(g, layers.wind_u.map((u, i) => [20 + Math.sqrt(Math.pow(u[0], 2) + Math.pow(layers.wind_v[i][0], 2)) * 25, u[1]]), '#293', 1.5);
@@ -711,7 +712,7 @@ function showSounding(airData) {
 			const v = interpolate(airData, 'wind_v', hour, height);
 			svg.querySelector('.windDir').setAttribute('transform', 'rotate(' + ((180 * Math.atan2(-v, u) / Math.PI - 90 + 360) % 360) + ',378,74)');
 			svg.querySelector('.windSpeed').textContent = Math.sqrt(Math.pow(u, 2) + Math.pow(v, 2)).toFixed(1) + 'm/s';
-			svg.querySelector('.tempDiff').textContent = 'Δ ' + (groundTemp + (ground - height) * .98 / 100 - interpolate(airData, 'temp', hour, height)).toFixed(1) + '°C';
+			svg.querySelector('.tempDiff').textContent = 'Δ ' + (groundTemp - (Math.min(cloudBase, height) - ground + Math.max(height - cloudBase, 0) * .6) * .98 / 100 - interpolate(airData, 'temp', hour, height)).toFixed(1) + '°C';
 			svg.querySelector('.guideline').style.visibility = 'visible';
 			svg.querySelector('.guideline').setAttribute('d', 'M20 ' + y + 'L420 ' + y);
 		} else {
