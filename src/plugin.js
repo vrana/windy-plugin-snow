@@ -172,19 +172,10 @@ function createMarker(latLon) {
 	marker.on('popupopen', () => {
 		activeMarker = marker;
 		loadForecast(latLon);
-		const model = getModel();
-		airDatas[model] = airDatas[model] || {};
-		if (!airDatas[model][latLon]) {
-			windyHttp.get(windyUrls.getMeteogramForecast(model, Object.assign({step: 1}, getLatLon(latLon)))).then(airData => {
-				if (airData.data.header.modelElevation && airData.data.data['temp-surface']) {
-					airDatas[model][latLon] = airData.data;
-					markers[latLon].setPopupContent(getTooltip(latLon));
-				} else {
-					windyHttp.get(windyUrls.getMeteogramForecast('ecmwf', Object.assign({step: 1}, getLatLon(latLon)))).then(ecmwf => {
-						airDatas['ecmwf'][latLon] = ecmwf.data;
-						markers[latLon].setPopupContent(getTooltip(latLon));
-					});
-				}
+		if (!airDatas['ecmwf'][latLon]) {
+			windyHttp.get(windyUrls.getMeteogramForecast('ecmwf', Object.assign({step: 1}, getLatLon(latLon)))).then(airData => {
+				airDatas['ecmwf'][latLon] = airData.data;
+				markers[latLon].setPopupContent(getTooltip(latLon));
 			});
 		}
 	});
@@ -285,8 +276,7 @@ function getTooltip(latLon) {
 	const model = getModel();
 	const wind = getWind(latLon);
 	const forecast = forecasts[model] && forecasts[model][latLon];
-	let airData = airDatas[model] && airDatas[model][latLon];
-	airData = airData && airData.header.modelElevation && airData.data['temp-surface'] ? airData : airDatas['ecmwf'][latLon];
+	const airData = airDatas['ecmwf'][latLon]; // ECMWF predicts height the best.
 	const colors = ['green', 'orange', 'gray', 'red'];
 	const tooltips = localSites.map(site => {
 		return '<b style="font-size: 1.25em;' + (site.name.length >= 20 ? 'text-overflow: ellipsis; max-width: 180px; display: inline-block; overflow: hidden; vertical-align: text-bottom;" title="' + html(site.name) : '') + '"><a' + getLaunchAttrs(site)
