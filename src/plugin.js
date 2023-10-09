@@ -35,11 +35,11 @@ function getLaunchExtra(site) {
 }
 
 function getWindAttrs(latLon) {
-	return ' href=\'javascript:W.store.set("detailDisplay", "wind"); W.broadcast.fire("rqstOpen", "detail", ' + JSON.stringify(getLatLon(latLon)) + ');\'';
+	return ' href=\'javascript:W.broadcast.fire("rqstOpen", "detail", ' + JSON.stringify(Object.assign(getLatLon(latLon), {'display': 'wind'})) + ');\''; // Recommended at https://community.windy.com/topic/28899 but it doesn't work.
 }
 
 function getForecastAttrs(latLon) {
-	return ' href=\'javascript:W.store.set("detailDisplay", "meteogram"); W.broadcast.fire("rqstOpen", "detail", ' + JSON.stringify(getLatLon(latLon)) + ');\'';
+	return ' href=\'javascript:W.broadcast.fire("rqstOpen", "detail", ' + JSON.stringify(Object.assign(getLatLon(latLon), {'display': 'meteogram'})) + ');\'';
 }
 
 export const onopen = function () {
