@@ -3,7 +3,7 @@ import interpolator from '@windy/interpolator';
 import {map} from '@windy/map';
 import store from '@windy/store';
 import utils from '@windy/utils';
-import windyUrls from '@windy/urls';
+import windyFetch from '@windy/fetch';
 
 /** Used in API version. */
 function onLaunchLoad() {
@@ -172,7 +172,7 @@ function createMarker(latLon) {
 		activeMarker = marker;
 		loadForecast(latLon);
 		if (!airDatas['ecmwf'][latLon]) {
-			windyUrls.getMeteogramForecast('ecmwf', Object.assign({step: 1}, getLatLon(latLon))).then(airData => {
+			windyFetch.getMeteogramForecastData('ecmwf', Object.assign({step: 1}, getLatLon(latLon))).then(airData => {
 				airDatas['ecmwf'][latLon] = airData.data;
 				markers[latLon].setPopupContent(getTooltip(latLon));
 			});
@@ -224,7 +224,7 @@ function loadForecast(latLon) {
 	if (forecasts[model][latLon]) {
 		return true;
 	}
-	windyUrls.getPointForecast(model, Object.assign({step: 1}, getLatLon(latLon)), 'detail').then(forecast => {
+	windyFetch.getPointForecastData(model, Object.assign({step: 1}, getLatLon(latLon)), 'detail').then(forecast => {
 		forecasts[model][latLon] = forecast.data;
 		// After loading the forecast, update the tooltip and possibly also the icon.
 		updateMarker(latLon);
