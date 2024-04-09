@@ -1,5 +1,6 @@
+<script>
 import broadcast from '@windy/broadcast';
-import interpolator from '@windy/interpolator';
+import { getLatLonInterpolator } from '@windy/interpolator';
 import {map} from '@windy/map';
 import store from '@windy/store';
 import utils from '@windy/utils';
@@ -181,37 +182,36 @@ function createMarker(latLon) {
 	return marker;
 }
 
-function redraw() {
-	interpolator(interpolate => {
-		const mapBounds = map.getBounds();
-		for (const latLon in sites) {
-			const flights = sites[latLon].reduce((acc, site) => Math.max(acc, site.flights), 0);
-			if (map.getZoom() > (flights > 100 ? 4 : (flights > 10 ? 7 : 8)) && mapBounds.contains(getLatLon(latLon))) {
-				if (!markers[latLon]) {
-					markers[latLon] = createMarker(latLon);
-				}
-				if (!winds[getWindsKey(latLon)]) {
-					if (store.get('overlay') == 'wind') {
-						// If the displayed overlay is 'wind' then use it.
-						const data = interpolate(getLatLon(latLon));
-						winds[getWindsKey(latLon)] = data && utils.wind2obj(data);
-					} else if (!loadForecast(latLon) && markers[latLon]._icon) {
-						// Preserve the old icon, just resize it.
-						const url = markers[latLon]._icon.src;
-						markers[latLon].setIcon(newIcon(url, sites[latLon]));
-						continue;
-					}
-				}
-				updateMarker(latLon);
-				markers[latLon].addTo(map);
-			} else if (markers[latLon]) {
-				markers[latLon].remove();
+async function redraw() {
+	const interpolator = await getLatLonInterpolator();
+	const mapBounds = map.getBounds();
+	for (const latLon in sites) {
+		const flights = sites[latLon].reduce((acc, site) => Math.max(acc, site.flights), 0);
+		if (map.getZoom() > (flights > 100 ? 4 : (flights > 10 ? 7 : 8)) && mapBounds.contains(getLatLon(latLon))) {
+			if (!markers[latLon]) {
+				markers[latLon] = createMarker(latLon);
 			}
+			if (!winds[getWindsKey(latLon)]) {
+				if (store.get('overlay') == 'wind') {
+					// If the displayed overlay is 'wind' then use it.
+					const data = interpolator(getLatLon(latLon));
+					winds[getWindsKey(latLon)] = data && utils.wind2obj(data);
+				} else if (!loadForecast(latLon) && markers[latLon]._icon) {
+					// Preserve the old icon, just resize it.
+					const url = markers[latLon]._icon.src;
+					markers[latLon].setIcon(newIcon(url, sites[latLon]));
+					continue;
+				}
+			}
+			updateMarker(latLon);
+			markers[latLon].addTo(map);
+		} else if (markers[latLon]) {
+			markers[latLon].remove();
 		}
-		if (activeMarker) {
-			activeMarker.fire('popupopen');
-		}
-	});
+	}
+	if (activeMarker) {
+		activeMarker.fire('popupopen');
+	}
 }
 
 /** Loads forecast if not already loaded.
@@ -786,3 +786,9 @@ function translate(english, czech) {
 function html(text) {
 	return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 }
+</script>
+
+<style lang="less">
+.onwindy-plugin-pg-mapa { }
+#windy-plugin-pg-mapa { }
+</style>
