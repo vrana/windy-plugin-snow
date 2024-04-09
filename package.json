@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vrana/windy-plugin-pg-mapa"
+    "url": "git+https://github.com/vrana/windy-plugin-pg-mapa.git"
   },
   "author": "Jakub Vrána",
   "license": "MIT",
