@@ -6,9 +6,9 @@ const __pluginConfig =  {
   "description": "Windy plugin for paragliding takeoffs.",
   "author": "Jakub Vrána",
   "desktopUI": "embedded",
-  "mobileUI": "fullscreen",
-  "built": 1712687074811,
-  "builtReadable": "2024-04-09T18:24:34.811Z"
+  "mobileUI": "embedded",
+  "built": 1712818896652,
+  "builtReadable": "2024-04-11T07:01:36.652Z"
 };
 
 // transformCode: import broadcast from '@windy/broadcast';
