@@ -1,10 +1,12 @@
+Paragliding Mapa
 <script>
 import broadcast from '@windy/broadcast';
-import { getLatLonInterpolator } from '@windy/interpolator';
+import {getLatLonInterpolator} from '@windy/interpolator';
 import {map} from '@windy/map';
 import store from '@windy/store';
 import utils from '@windy/utils';
 import windyFetch from '@windy/fetch';
+import {onDestroy} from 'svelte';
 
 /** Used in API version. */
 function onLaunchLoad() {
@@ -51,6 +53,12 @@ export const onopen = function () {
 	init();
 }
 
+onDestroy(() => {
+	Object.values(markers).forEach(marker => marker.remove());
+	markers = {};
+	sites = {};
+});
+
 // Same as https://pg.vrana.cz/mapa/ from here.
 
 /** @typedef {{
@@ -73,9 +81,9 @@ export const onopen = function () {
  * }} */
 let Site;
 /** @type {Object<string, Array<Site>>} key: latLon */
-const sites = {};
+let sites = {};
 /** @type {Object<string, L.Marker>} key: latLon */
-const markers = {};
+let markers = {};
 /** @type {?L.Marker} */
 let activeMarker = null;
 /** @typedef {{wind: number, dir: number}} */
