@@ -55,8 +55,7 @@ export const onopen = function () {
 
 onDestroy(() => {
 	Object.values(markers).forEach(marker => marker.remove());
-	markers = {};
-	sites = {};
+	broadcast.off('redrawFinished', redraw);
 });
 
 // Same as https://pg.vrana.cz/mapa/ from here.
@@ -81,9 +80,9 @@ onDestroy(() => {
  * }} */
 let Site;
 /** @type {Object<string, Array<Site>>} key: latLon */
-let sites = {};
+const sites = {};
 /** @type {Object<string, L.Marker>} key: latLon */
-let markers = {};
+const markers = {};
 /** @type {?L.Marker} */
 let activeMarker = null;
 /** @typedef {{wind: number, dir: number}} */
@@ -131,6 +130,7 @@ const airDatas = {ecmwf: {}};
 let displaySounding = false;
 
 function init() {
+	broadcast.on('redrawFinished', redraw);
 	if (Object.keys(sites).length) {
 		// Opening already loaded layer.
 		return;
@@ -163,7 +163,6 @@ function init() {
 
 		map.on('popupclose', () => activeMarker = null);
 		redraw(); // Redraw might be finished before the data is loaded.
-		broadcast.on('redrawFinished', redraw);
 		onLaunchLoad();
 	});
 }

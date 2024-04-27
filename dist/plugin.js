@@ -7,8 +7,8 @@ const __pluginConfig =  {
   "author": "Jakub Vrána",
   "desktopUI": "embedded",
   "mobileUI": "embedded",
-  "built": 1713862217202,
-  "builtReadable": "2024-04-23T08:50:17.202Z"
+  "built": 1714281157873,
+  "builtReadable": "2024-04-28T05:12:37.873Z"
 };
 
 // transformCode: import broadcast from '@windy/broadcast';
@@ -823,15 +823,14 @@ function instance($$self, $$props, $$invalidate) {
 
 	onDestroy(() => {
 		Object.values(markers).forEach(marker => marker.remove());
-		markers = {};
-		sites = {};
+		broadcast.off('redrawFinished', redraw);
 	});
 
 	/** @type {Object<string, Array<Site>>} key: latLon */
-	let sites = {};
+	const sites = {};
 
 	/** @type {Object<string, L.Marker>} key: latLon */
-	let markers = {};
+	const markers = {};
 
 	/** @type {?L.Marker} */
 	let activeMarker = null;
@@ -852,6 +851,8 @@ function instance($$self, $$props, $$invalidate) {
 	let displaySounding = false;
 
 	function init() {
+		broadcast.on('redrawFinished', redraw);
+
 		if (Object.keys(sites).length) {
 			// Opening already loaded layer.
 			return;
@@ -894,7 +895,6 @@ function instance($$self, $$props, $$invalidate) {
 
 			map.on('popupclose', () => activeMarker = null);
 			redraw(); // Redraw might be finished before the data is loaded.
-			broadcast.on('redrawFinished', redraw);
 		});
 	}
 
