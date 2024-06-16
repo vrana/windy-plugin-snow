@@ -1,6 +1,6 @@
 const __pluginConfig =  {
   "name": "windy-plugin-pg-mapa",
-  "version": "2.2.4",
+  "version": "2.2.5",
   "icon": "🪂",
   "title": "Paragliding Mapa",
   "description": "Windy plugin for paragliding takeoffs.",
@@ -8,8 +8,8 @@ const __pluginConfig =  {
   "desktopUI": "embedded",
   "mobileUI": "small",
   "routerPath": "/pgmapa",
-  "built": 1714372866325,
-  "builtReadable": "2024-04-29T06:41:06.325Z"
+  "built": 1718530920437,
+  "builtReadable": "2024-06-16T09:42:00.437Z"
 };
 
 // transformCode: import broadcast from '@windy/broadcast';
@@ -1068,7 +1068,7 @@ function instance($$self, $$props, $$invalidate) {
 
 			const sunset = new Date(forecast.header.sunset).getHours();
 
-			const icon = data.icon2 + (data.hour > sunrise && data.hour <= sunset
+			const icon = data.icon + (data.hour > sunrise && data.hour <= sunset
 			? ''
 			: '_night_' + data.moonPhase);
 

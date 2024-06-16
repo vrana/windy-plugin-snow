@@ -94,7 +94,7 @@ const winds = {};
  *   wind: number,
  *   gust: number,
  *   windDir: number,
- *   icon2: number,
+ *   icon: number,
  *   moonPhase: number,
  *   mm: number,
  * }} */
@@ -105,7 +105,7 @@ let Forecast;
  *   wind: Array<number>,
  *   gust: Array<number>,
  *   windDir: Array<number>,
- *   icon2: Array<number>,
+ *   icon: Array<number>,
  *   moonPhase: Array<number>,
  *   mm: Array<number>,
  * }} */
@@ -315,7 +315,7 @@ function getTooltip(latLon) {
 		// We don't have data about twilight, use sunrise and sunset instead.
 		const sunrise = new Date(forecast.header.sunrise).getHours();
 		const sunset = new Date(forecast.header.sunset).getHours();
-		const icon = data.icon2 + (data.hour > sunrise && data.hour <= sunset ? '' : '_night_' + data.moonPhase);
+		const icon = data.icon + (data.hour > sunrise && data.hour <= sunset ? '' : '_night_' + data.moonPhase);
 		extra.push('<a' + getForecastAttrs(latLon) + '>'
 			+ '<img src="https://www.windy.com/img/icons4/png_25px/' + icon + '.png" style="height: 1.3em; vertical-align: middle;" title="' + translate('weather', 'počasí') + ' ' + model + '"></a>'
 			+ (data.mm ? ' <span title="' + translate('precipitation', 'srážky') + '">' + data.mm + ' mm</span>' : '')
