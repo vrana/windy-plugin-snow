@@ -266,7 +266,7 @@ function getUrlLink(url) {
 	if (/paragliding-mapa\.cz/.test(url)) {
 		return ' <a href="' + url + '" target="_blank"><img src="https://www.paragliding-mapa.cz/favicon/favicon-32x32.png" width="12" height="12" alt="" title="Paragliding Mapa"></a>';
 	} else if (/dhv\.de/.test(url)) {
-		return ' <a href="' + url + '" target="_blank"><img src="https://www.dhv.de/fileadmin/templates/dhv2011/img/favicon/dhv.ico" width="12" height="12" alt="" title="DHV"></a>';
+		return ' <a href="' + url + '" target="_blank"><img src="https://service.dhv.de/dbresources/dhv/images/ci/dhv.ico" width="12" height="12" alt="" title="DHV"></a>';
 	} else if (/paraglidingearth\.com/.test(url)) {
 		return ' <a href="' + url + '" target="_blank"><img src="https://www.paraglidingearth.com/assets/img/favicon.ico" width="12" height="12" alt="" title="Paragliding Earth"></a>';
 	}
