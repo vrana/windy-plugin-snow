@@ -1,6 +1,6 @@
 const __pluginConfig =  {
   "name": "windy-plugin-pg-mapa",
-  "version": "2.2.6",
+  "version": "2.2.7",
   "icon": "🪂",
   "title": "Paragliding Mapa",
   "description": "Windy plugin for paragliding takeoffs.",
@@ -8,8 +8,8 @@ const __pluginConfig =  {
   "desktopUI": "embedded",
   "mobileUI": "small",
   "routerPath": "/pgmapa",
-  "built": 1739670581779,
-  "builtReadable": "2025-02-16T01:49:41.779Z"
+  "built": 1739673516249,
+  "builtReadable": "2025-02-16T02:38:36.249Z"
 };
 
 // transformCode: import broadcast from '@windy/broadcast';
@@ -613,7 +613,11 @@ function getColor(sites, wind, colors = ['lime', 'yellow', 'silver', 'red']) {
 		return 'white';
 	}
 
-	return colors[Math.max(getSpeedIndex(wind.wind), getDirIndex(sites, wind.dir))];
+	const dirIndex = getDirIndex(sites, wind.dir);
+
+	return colors[wind.wind < 1 && dirIndex == 3
+	? 1
+	: Math.max(getSpeedIndex(wind.wind), dirIndex)];
 }
 
 /** Checks if site forbidden.

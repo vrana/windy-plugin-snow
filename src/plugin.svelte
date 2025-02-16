@@ -427,7 +427,8 @@ function getColor(sites, wind, colors = ['lime', 'yellow', 'silver', 'red']) {
 	if (!wind) {
 		return 'white';
 	}
-	return colors[Math.max(getSpeedIndex(wind.wind), getDirIndex(sites, wind.dir))];
+	const dirIndex = getDirIndex(sites, wind.dir);
+	return colors[wind.wind < 1 && dirIndex == 3 ? 1 : Math.max(getSpeedIndex(wind.wind), dirIndex)];
 }
 
 /** Checks if site forbidden.
