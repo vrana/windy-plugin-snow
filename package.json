@@ -1,8 +1,8 @@
 {
-  "name": "windy-plugin-pg-mapa",
+  "name": "windy-plugin-snow",
   "type": "module",
-  "version": "2.2.7",
-  "description": "Windy plugin for paragliding takeoffs.",
+  "version": "1.0.0",
+  "description": "Windy plugin for snow resorts.",
   "main": "dist/plugin.js",
   "scripts": {
     "build": "rm -rf dist && mkdir dist && SERVE=false rollup -c && cp package.json dist/",
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vrana/windy-plugin-pg-mapa.git"
+    "url": "git+https://github.com/vrana/windy-plugin-snow.git"
   },
   "author": "Jakub Vrána",
   "license": "MIT",
