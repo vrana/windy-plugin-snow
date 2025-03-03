@@ -1,6 +1,6 @@
 const __pluginConfig =  {
   "name": "windy-plugin-snow",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "icon": "❄",
   "title": "Snow resorts",
   "description": "Windy plugin for snow resorts.",
@@ -9,8 +9,9 @@ const __pluginConfig =  {
   "desktopUI": "embedded",
   "mobileUI": "small",
   "routerPath": "/snow",
-  "built": 1740414049480,
-  "builtReadable": "2025-02-24T16:20:49.480Z"
+  "built": 1741015187945,
+  "builtReadable": "2025-03-03T15:19:47.945Z",
+  "screenshot": "screenshot.png"
 };
 
 // transformCode: import broadcast from '@windy/broadcast';

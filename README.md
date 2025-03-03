@@ -1,5 +1,5 @@
 ### Windy plugin for snow resorts
 
-![Screenshot](screenshot.png)
+![Screenshot](src/screenshot.png)
 
 https://snow.cz/
