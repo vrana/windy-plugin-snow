@@ -17,6 +17,6 @@
   "author": "Jakub Vrána",
   "license": "MIT",
   "dependencies": {
-    "@windycom/plugin-devtools": "^1.0.8"
+    "@windycom/plugin-devtools": "^3.0.0"
   }
 }
