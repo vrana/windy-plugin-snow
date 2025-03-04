@@ -1,6 +1,6 @@
 const __pluginConfig =  {
   "name": "windy-plugin-snow",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "icon": "❄",
   "title": "Snow resorts",
   "description": "Windy plugin for snow resorts.",
@@ -9,8 +9,8 @@ const __pluginConfig =  {
   "desktopUI": "embedded",
   "mobileUI": "small",
   "routerPath": "/snow",
-  "built": 1741015187945,
-  "builtReadable": "2025-03-03T15:19:47.945Z",
+  "built": 1741079062638,
+  "builtReadable": "2025-03-04T09:04:22.638Z",
   "screenshot": "screenshot.png"
 };
 
