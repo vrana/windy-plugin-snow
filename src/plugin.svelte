@@ -4,14 +4,6 @@ import broadcast from '@windy/broadcast';
 import {map} from '@windy/map';
 import {onDestroy} from 'svelte';
 
-export const onopen = function () {
-	const openInApp = document.getElementById('open-in-app');
-	if (openInApp) {
-		openInApp.style.display = 'none';
-	}
-	init();
-}
-
 onDestroy(() => {
 	Object.values(markers).forEach(marker => marker.remove());
 	broadcast.off('redrawFinished', redraw);
@@ -35,7 +27,7 @@ const markers = {};
 /** @type {?L.Marker} */
 let activeMarker = null;
 
-function init() {
+export const onopen = function () {
 	broadcast.on('redrawFinished', redraw);
 	if (Object.keys(sites).length) {
 		// Opening already loaded layer.
@@ -46,7 +38,7 @@ function init() {
 		map.on('popupclose', () => activeMarker = null);
 		redraw(); // Redraw might be finished before the data is loaded.
 	});
-}
+};
 
 function createMarker(site) {
 	const marker = L.marker(site, {

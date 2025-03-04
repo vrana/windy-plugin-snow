@@ -1,6 +1,6 @@
 const __pluginConfig =  {
   "name": "windy-plugin-snow",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "icon": "❄",
   "title": "Snow resorts",
   "description": "Windy plugin for snow resorts.",
@@ -9,8 +9,8 @@ const __pluginConfig =  {
   "desktopUI": "embedded",
   "mobileUI": "small",
   "routerPath": "/snow",
-  "built": 1741079062638,
-  "builtReadable": "2025-03-04T09:04:22.638Z",
+  "built": 1741101148529,
+  "builtReadable": "2025-03-04T15:12:28.529Z",
   "screenshot": "screenshot.png"
 };
 
@@ -588,16 +588,6 @@ function html(text) {
 }
 
 function instance($$self, $$props, $$invalidate) {
-	const onopen = function () {
-		const openInApp = document.getElementById('open-in-app');
-
-		if (openInApp) {
-			openInApp.style.display = 'none';
-		}
-
-		init();
-	};
-
 	onDestroy(() => {
 		Object.values(markers).forEach(marker => marker.remove());
 		broadcast.off('redrawFinished', redraw);
@@ -612,7 +602,7 @@ function instance($$self, $$props, $$invalidate) {
 	/** @type {?L.Marker} */
 	let activeMarker = null;
 
-	function init() {
+	const onopen = function () {
 		broadcast.on('redrawFinished', redraw);
 
 		if (Object.keys(sites).length) {
@@ -625,7 +615,7 @@ function instance($$self, $$props, $$invalidate) {
 			map.on('popupclose', () => activeMarker = null);
 			redraw(); // Redraw might be finished before the data is loaded.
 		});
-	}
+	};
 
 	function createMarker(site) {
 		const marker = L.marker(site, {
